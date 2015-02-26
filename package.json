@@ -1,0 +1,29 @@
+{
+  "name": "marc-zuckerbot",
+  "version": "0.1.0",
+  "description": "Fun bot for Facebook chat",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Avery, David, Maude, Benjamin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bsansouci/marc-zuckerbot.git"
+  },
+  "dependencies": {
+    "chrono-node": "^1.0.3",
+    "facebook-chat-api": "^0.1.1",
+    "firebase": "^2.2.1"
+  },
+  "engines": {
+    "node": "0.12.x"
+  },
+  "bugs": {
+    "url": "https://github.com/bsansouci/marc-zuckerbot/issues"
+  },
+  "homepage": "https://github.com/bsansouci/marc-zuckerbot",
+  "devDependencies": {}
+}
