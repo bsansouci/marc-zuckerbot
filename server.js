@@ -5,13 +5,14 @@ var Firebase = require("firebase");
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
 http.createServer(function (req, res) {
+  console.log("blabla1");
   res.writeHead(200, {'Content-Type': 'text/plain'});
   res.end("pong");
 }).listen(process.env.PORT || 5000);
 
 setInterval(function() {
   http.get("http://marc-zuckerbot.herokuapp.com", function(res) {
-    console.log(res.url);
+    console.log("blabla2");
   });
 }, 4000);
 
