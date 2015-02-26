@@ -1,4 +1,3 @@
-var e = require('express');
 var login = require("facebook-chat-api");
 var chrono = require('chrono-node');
 var Firebase = require("firebase");
