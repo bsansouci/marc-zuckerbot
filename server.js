@@ -19,7 +19,6 @@ function startBot(api, chats) {
   api.listen(function(err, message, stopListening) {
     if(err) return console.error(err);
 
-  api.listen(function(message, logout) {
     console.log("Received ->", message);
     var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.participant_names);
     console.log("Sending ->", msg);
@@ -109,28 +108,28 @@ function startBot(api, chats) {
   };
 
   var slap = function(msg) {
-      var myRegexp = /^\/(slap\s*.*)/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
+    var myRegexp = /^\/(slap\s*.*)/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
 
-      var arr = match[1].trim().toLowerCase();
-      var list = arr.split(/\s+/);
-      if(list.length === 1) return {text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."};
+    var arr = match[1].trim().toLowerCase();
+    var list = arr.split(/\s+/);
+    if(list.length === 1) return {text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."};
 
-      var name = list[1];
-      if(name === "me") return {text: currentUsername + " just go slapped." + (Math.random() > 0.5 ? " Hard.": "")};
+    var name = list[1];
+    if(name === "me") return {text: currentUsername + " just go slapped." + (Math.random() > 0.5 ? " Hard.": "")};
 
-      var exists = currentOtherUsernames.filter(function(v) {return v === name;}).length === 1;
+    var exists = currentOtherUsernames.filter(function(v) {return v === name;}).length === 1;
 
-      return {text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")};
+    return {text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")};
   };
 
   var weekendText = function(msg) {
-      var myRegexp = /is it (weekend)\s?\?/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
-      var today = new Date();
-      return {text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")};
+    var myRegexp = /is it (weekend)\s?\?/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
+    var today = new Date();
+    return {text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")};
   };
 
   var addScore = function(msg) {
@@ -162,82 +161,82 @@ function startBot(api, chats) {
   };
 
   var score = function(msg) {
-      var myRegexp = /^\/score([\w .\-]*)$/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
-      var name = match[1].trim().toLowerCase();
-      if (name.length < 1 || name === "me") name = currentUsername;
+    var myRegexp = /^\/score([\w .\-]*)$/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
+    var name = match[1].trim().toLowerCase();
+    if (name.length < 1 || name === "me") name = currentUsername;
 
-      name = capitalize(name);
-      if (!contains(currentOtherUsernames, name)) return {text: "who?"};
+    name = capitalize(name);
+    if (!contains(currentOtherUsernames, name)) return {text: "who?"};
 
-      var pts = currentChat.scores[name] ? currentChat.scores[name] : 0;
-      return {text: ("" + name + " has " + pts + " points")};
+    var pts = currentChat.scores[name] ? currentChat.scores[name] : 0;
+    return {text: ("" + name + " has " + pts + " points")};
   };
 
   var albert = function(msg) {
-      var myRegexp = /^\/albert$/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
-      var k =  "\n         ,---,_          ,\n          _>   `'-.  .--'/\n     .--'` ._      `/   <_\n      >,-' ._'.. ..__ . ' '-.\n   .-'   .'`         `'.     '.\n    >   / >`-.     .-'< \\ , '._\\\n   /    ; '-._>   <_.-' ;  '._>\n   `>  ,/  /___\\ /___\\  \\_  /\n   `.-|(|  \\o_/  \\o_/   |)|`\n       \\;        \\      ;/\n         \\  .-,   )-.  /\n          /`  .'-'.  `\\\n         ;_.-`.___.'-.;\n";
-  return {text: k};
+    var myRegexp = /^\/albert$/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
+    var k =  "\n         ,---,_          ,\n          _>   `'-.  .--'/\n     .--'` ._      `/   <_\n      >,-' ._'.. ..__ . ' '-.\n   .-'   .'`         `'.     '.\n    >   / >`-.     .-'< \\ , '._\\\n   /    ; '-._>   <_.-' ;  '._>\n   `>  ,/  /___\\ /___\\  \\_  /\n   `.-|(|  \\o_/  \\o_/   |)|`\n       \\;        \\      ;/\n         \\  .-,   )-.  /\n          /`  .'-'.  `\\\n         ;_.-`.___.'-.;\n";
+    return {text: k};
   };
 
   var bees = function(msg) {
-      if (msg.indexOf("bees") > -1) {
-          return {text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"};
-      }
+    if (msg.indexOf("bees") > -1) {
+      return {text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"};
+    }
   };
 
   var sexxiBatman = function(msg) {
-      if (msg.match(/[Ww]anna make some trouble[\s\t]*/)) {
-          return {text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"};
-      }
+    if (msg.match(/[Ww]anna make some trouble[\s\t]*/)) {
+      return {text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"};
+    }
   };
 
   var ping = function(msg) {
-      var myRegexp = /^\/ping$/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
-      return {text: "pong"};
+    var myRegexp = /^\/ping$/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
+    return {text: "pong"};
   };
 
   var xkcdSearch = function(msg) {
-      var myRegexp = /^\/xkcd\s+(.+)/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
-      var search = match[1].trim().toLowerCase().replace(/ /g, "+");
-      var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
-      return {text: "Find relevant xkcds here: " + searchUrl};
+    var myRegexp = /^\/xkcd\s+(.+)/i;
+    var match = myRegexp.exec(msg);
+    if (!match || match.length < 1) return;
+    var search = match[1].trim().toLowerCase().replace(/ /g, "+");
+    var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
+    return {text: "Find relevant xkcds here: " + searchUrl};
   };
 
   var giphySearch = function(msg) {
-      var data = "";
-      if(msg.indexOf("giphy") > -1) {
-          var strippedString = msg.replace(/^\s+|\s+$/g, '');
-          strippedString = strippedString.replace("giphy", '');
+    var data = "";
+    if(msg.indexOf("giphy") > -1) {
+      var strippedString = msg.replace(/^\s+|\s+$/g, '');
+      strippedString = strippedString.replace("giphy", '');
 
-          var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-          var request = new XMLHttpRequest();
-          request.open('GET', 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag='+strippedString, false);
+      var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+      var request = new XMLHttpRequest();
+      request.open('GET', 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag='+strippedString, false);
 
-          request.onload = function() {
-              if (request.status >= 200 && request.status < 400){
-                  data = JSON.parse(request.responseText).data.image_url;
-                  console.log(data);
-                  return {text: data};
-              } else {
-                  return {text: "No gif for this search result."};
-              }
-          };
+      request.onload = function() {
+        if (request.status >= 200 && request.status < 400){
+          data = JSON.parse(request.responseText).data.image_url;
+          console.log(data);
+          return {text: data};
+        } else {
+          return {text: "No gif for this search result."};
+        }
+      };
 
-          request.onerror = function() {
-              console.log('Connection error');
-          };
+      request.onerror = function() {
+        console.log('Connection error');
+      };
 
-          request.send(null);
-          console.log("request sent");
-      }
+      request.send(null);
+      console.log("request sent");
+    }
   };
 
   var arbitraryLists = function (msg) {
