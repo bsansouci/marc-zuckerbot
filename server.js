@@ -10,7 +10,7 @@ http.createServer(function (req, res) {
 }).listen(process.env.PORT || 5000);
 
 setInterval(function() {
-  http.get("https://marc-zuckerbot.herokuapp.com", function(res) {
+  http.get("http://marc-zuckerbot.herokuapp.com", function(res) {
     console.log(res.url);
   });
 }, 4000);
