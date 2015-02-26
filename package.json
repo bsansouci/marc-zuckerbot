@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "chrono-node": "^1.0.3",
-    "facebook-chat-api": "^0.1.1",
+    "facebook-chat-api": "git://github.com/schmavery/facebook-chat-api",
     "firebase": "^2.2.1"
   },
   "engines": {

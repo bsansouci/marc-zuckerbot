@@ -7,8 +7,8 @@ var http = require('http');
 http.createServer(function (req, res) {
 }).listen(process.env.PORT || 5000);
 
-if(!process.env.BOT_FIREBASE) return console.error("BOT_FIREBASE env variable isn't set!");
-var db = new Firebase(process.env.BOT_FIREBASE);
+if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
+var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 
 function startBot(api, chats) {
   var currentUsername;
@@ -16,13 +16,16 @@ function startBot(api, chats) {
   var currentOtherUsernames;
 
   // Main method
-  api.listen(function(message, logout) {
+  api.listen(function(err, message, stopListening) {
+    if(err) return console.error(err);
+
     console.log("Received ->", message);
     var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.participant_names);
     console.log("Sending ->", msg);
 
     if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
-    if(msg.sticker_id) api.sendMessage('', message.thread_id, msg.sticker_id);
+
+    if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
   });
 
 
@@ -329,7 +332,9 @@ function startBot(api, chats) {
 // Main function
 db.once('value', function(snapshot) {
   var chats = snapshot.val() || {};
-  login(function(api) {
+  login(function(err, api) {
+    if(err) return console.error(err);
+
     startBot(api, chats);
   });
 });
