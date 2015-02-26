@@ -19,6 +19,7 @@ function startBot(api, chats) {
   api.listen(function(err, message, stopListening) {
     if(err) return console.error(err);
 
+  api.listen(function(message, logout) {
     console.log("Received ->", message);
     var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.participant_names);
     console.log("Sending ->", msg);
