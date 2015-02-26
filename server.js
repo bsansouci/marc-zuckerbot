@@ -5,7 +5,18 @@ var Firebase = require("firebase");
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
 http.createServer(function (req, res) {
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.end("pong");
 }).listen(process.env.PORT || 5000);
+
+setInterval(function() {
+  http.get("https://marc-zuckerbot.herokuapp.com", function(res) {
+    console.log(res.url);
+  });
+}, 4000);
+
+
+
 
 if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
 var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
