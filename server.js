@@ -92,7 +92,7 @@ function startBot(api, chats) {
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(\/sayit)/i], ["David's an idiot"]],
           [[/\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap [name]\n- /sayit\n- /xkcd keyword\n- name++\n- /score [name]\n- /topscore"]],
-          [[/[ |^](chat)?bots?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]]
+          [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
           var possibleMatches = possibilities[i][0];
