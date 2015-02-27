@@ -24,8 +24,31 @@ var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 
 function startBot(api, chats) {
   var currentUsername;
+  var currentThreadId;
   var currentChat;
   var currentOtherUsernames;
+
+  var timerDone = function(d) {
+    api.sendMessage('Reminder: ' + d.text, d.thread_id);
+    chats[d.thread_id].reminders = chats[d.thread_id].reminders.filter(function(v) {
+      return v.text === d.text && v.date === d.date;
+    });
+    db.set(chats);
+  };
+
+  var now = Date.now();
+  for(var prop in chats) {
+    if(chats.hasOwnProperty(prop) && chats[prop].reminders) {
+      chats[prop].reminders.map(function(v) {
+        var diff = now - (new Date(v.date)).getTime();
+        if(diff <= 0) {
+          return timerDone(v);
+        }
+
+        setTimeout(timerDone, diff, v);
+      });
+    }
+  }
 
   // Main method
   api.listen(function(err, message, stopListening) {
@@ -42,20 +65,23 @@ function startBot(api, chats) {
 
 
   // messages, username, chat id are Strings, otherUsernmaes is array of Strings
-  var read = function(message, username, chatid, otherUsernames) {
+  var read = function(message, username, thread_id, otherUsernames) {
     // Default chat object or existing one
     // And set the global object
-    currentChat = chats[chatid] = chats[chatid] || {
+    currentChat = chats[thread_id] = chats[thread_id] || {
       lists: {},
       scores: {},
       existingChat: false
     };
+    currentThreadId = thread_id;
+
     if(!currentChat.lists) currentChat.lists = {};
     if(!currentChat.scores) currentChat.scores = {};
+    if(!currentChat.reminders) currentChat.reminders = [];
 
     if (!currentChat.existingChat){
       currentChat.existingChat = true;
-      api.sendMessage("Hey, type '/help' for some useful commands!", chatid);
+      api.sendMessage("Hey, type '/help' for some useful commands!", thread_id);
     }
 
     currentUsername = username;
@@ -81,8 +107,20 @@ function startBot(api, chats) {
     var ret = chrono.parse(rest);
     if(ret.length === 0) return;
 
-    console.log(ret);
-    return {text: "Reminder at: " + ret[0].start.date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
+    var date = ret[0].start.date().toISOString();
+
+    currentChat.reminders.push({
+      text: rest.replace(ret[0].text, ''),
+      date: date,
+      thread_id: currentThreadId
+    });
+    console.log(Date.now() - ret[0].start.date().getTime());
+    if(Date.now() - ret[0].start.date().getTime() <= 0) {
+      timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
+    } else {
+      setTimeout(timerDone, Date.now() - ret[0].start.date().getTime(), currentChat.reminders[currentChat.reminders.length - 1]);
+    }
+    return {text: "Reminder at: " + date.replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
   };
 
   var staticText = function(msg) {
