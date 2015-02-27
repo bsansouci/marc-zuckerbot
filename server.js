@@ -60,7 +60,7 @@ function startBot(api, chats) {
 
     currentUsername = username;
     currentOtherUsernames = otherUsernames;
-    var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, chatbot, sendStickerBigSmall, staticText, reminders];
+    var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, sendStickerBigSmall, staticText, reminders];
     for (var i = 0; i < textFunctions.length; i++) {
         var res = textFunctions[i](message);
         if (res) {
@@ -91,7 +91,8 @@ function startBot(api, chats) {
           [[/(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(\/sayit)/i], ["David's an idiot"]],
-          [[/\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap [name]\n- /sayit\n- /xkcd keyword\n- name++\n- /score [name]\n- /topscore"]]
+          [[/\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap [name]\n- /sayit\n- /xkcd keyword\n- name++\n- /score [name]\n- /topscore"]],
+          [[/[ |^](chat)?bots?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
           var possibleMatches = possibilities[i][0];
@@ -311,14 +312,6 @@ function startBot(api, chats) {
       }
     }
     return {text: "Top Score: " + maxName+ ", with "+max+" points."};
-  };
-
-  var chatbot = function(msg) {
-    var myRegexp = /((chat)? ?bots?)/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
-    var items = ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"];
-    return {text: items[Math.floor(Math.random()*items.length)]};
   };
 
   function capitalize(name) {
