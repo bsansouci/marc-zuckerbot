@@ -104,8 +104,8 @@ function startBot(api, chats) {
     if(!match || match.length === 0) return;
     var rest = match[1].trim();
     if(!timezonesOffsets[rest]) return;
-    var offset = (new Date()).getTimezoneOffset() * 60 * 1000;
-    currentChat.timezoneOffset = offset + timezonesOffsets[rest] * 60000;
+
+    currentChat.timezone = rest;
 
     return {
       text: "Set the currentChat timezone to " + rest + "."
@@ -118,19 +118,19 @@ function startBot(api, chats) {
     if(!match || match.length === 0) return;
     var rest = match[1].trim();
     console.log(rest);
-    var ret = chrono.parse(rest);
+    if(!currentChat.hasOwnProperty("timezone")) return {text: "Please set your timezone with the /settimezone command"};
+    var ret = chrono.parse(rest + " " + currentChat.timezone);
     if(ret.length === 0) return;
-    if(!currentChat.hasOwnProperty("timezoneOffset")) return {text: "Please set your timezone with the /settimezone command"};
 
     var date = ret[0].start.date();
-    date.setDate(date.getDate() - 1);
 
     currentChat.reminders.push({
       text: rest.replace(ret[0].text, ''),
       date: date.toISOString(),
       thread_id: currentThreadId
     });
-    var now = Date.now() + currentChat.timezoneOffset;
+    var now = new Date();
+    now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime() + timezonesOffsets[currentChat.timezone] * 60000;
     console.log(date, now - date.getTime());
     if(now >= date.getTime()) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
