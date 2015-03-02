@@ -131,11 +131,11 @@ function startBot(api, chats) {
       thread_id: currentThreadId
     });
     var now = Date.now() + currentChat.timezoneOffset;
-    console.log(ret[0].start.date(), now - ret[0].start.date().getTime());
-    if(now >= ret[0].start.date().getTime()) {
+    console.log(date, now - date.getTime());
+    if(now >= date.getTime()) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
-      setTimeout(timerDone, ret[0].start.date().getTime() - now, currentChat.reminders[currentChat.reminders.length - 1]);
+      setTimeout(timerDone, date.getTime() - now, currentChat.reminders[currentChat.reminders.length - 1]);
     }
     return {text: "Reminder at: " + date.toISOString().replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
   };
