@@ -123,6 +123,7 @@ function startBot(api, chats) {
     if(ret.length === 0) return;
 
     var date = ret[0].start.date();
+    var time = date.getTime() - timezonesOffsets[currentChat.timezone] * 60000;
 
     currentChat.reminders.push({
       text: rest.replace(ret[0].text, ''),
@@ -130,12 +131,12 @@ function startBot(api, chats) {
       thread_id: currentThreadId
     });
     var now = new Date();
-    now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime() + timezonesOffsets[currentChat.timezone] * 60000;
-    console.log(date, now - date.getTime());
-    if(now >= date.getTime()) {
+    now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime();
+    console.log(date, now - time);
+    if(now >= time) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
-      setTimeout(timerDone, date.getTime() - now, currentChat.reminders[currentChat.reminders.length - 1]);
+      setTimeout(timerDone, time - now, currentChat.reminders[currentChat.reminders.length - 1]);
     }
     return {text: "Reminder at: " + date.toISOString().replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
   };
