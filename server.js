@@ -129,8 +129,8 @@ function startBot(api, chats) {
       date: date,
       thread_id: currentThreadId
     });
-    var now = Date.now();
-    console.log(ret[0].start.date(), now - ret[0].start.date().getTime());
+    var now = Date.now() + currentChat.timezoneOffset;
+    console.log(ret[0].start.date(), now - ret[0].start.date().getTime() + currentChat.timezoneOffset);
     if(now >= ret[0].start.date().getTime()) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
