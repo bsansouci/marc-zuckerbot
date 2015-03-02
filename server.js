@@ -31,7 +31,7 @@ function startBot(api, chats) {
   var timerDone = function(d) {
     api.sendMessage('Reminder: ' + d.text, d.thread_id);
     chats[d.thread_id].reminders = chats[d.thread_id].reminders.filter(function(v) {
-      return v.text === d.text && v.date === d.date;
+      return v.text !== d.text || v.date !== d.date;
     });
     db.set(chats);
   };
@@ -40,7 +40,7 @@ function startBot(api, chats) {
   for(var prop in chats) {
     if(chats.hasOwnProperty(prop) && chats[prop].reminders) {
       chats[prop].reminders.map(function(v) {
-        var diff = now - (new Date(v.date)).getTime();
+        var diff = (new Date(v.date)).getTime() - now;
         if(diff <= 0) {
           return timerDone(v);
         }
@@ -114,11 +114,12 @@ function startBot(api, chats) {
       date: date,
       thread_id: currentThreadId
     });
-    console.log(Date.now() - ret[0].start.date().getTime());
-    if(Date.now() - ret[0].start.date().getTime() <= 0) {
+    var now = Date.now();
+    console.log(ret[0].start.date(), now - ret[0].start.date().getTime());
+    if(now >= ret[0].start.date().getTime()) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
-      setTimeout(timerDone, Date.now() - ret[0].start.date().getTime(), currentChat.reminders[currentChat.reminders.length - 1]);
+      setTimeout(timerDone, ret[0].start.date().getTime() - now, currentChat.reminders[currentChat.reminders.length - 1]);
     }
     return {text: "Reminder at: " + date.replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
   };
