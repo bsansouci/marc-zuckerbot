@@ -105,7 +105,7 @@ function startBot(api, chats) {
     var rest = match[1].trim();
     if(!timezonesOffsets[rest]) return;
     var offset = (new Date()).getTimezoneOffset() * 60 * 1000;
-    currentChat.timezoneOffset = offset - timezonesOffsets[rest] * 60000;
+    currentChat.timezoneOffset = offset + timezonesOffsets[rest] * 60000;
 
     return {
       text: "Set the currentChat timezone to " + rest + "."
