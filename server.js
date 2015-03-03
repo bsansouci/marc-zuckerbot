@@ -132,7 +132,7 @@ function startBot(api, chats) {
     });
     var now = new Date();
     now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime();
-    console.log(date, now - time);
+    console.log(date, time, now, now - time);
     if(now >= time) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
