@@ -123,16 +123,17 @@ function startBot(api, chats) {
     if(ret.length === 0) return;
 
     var date = ret[0].start.date();
-    var time = date.getTime() + (new Date()).getTimezoneOffset() * 60000;
-    console.log((new Date()).getTimezoneOffset());
+    var time = date.getTime() + (new Date()).getTimezoneOffset() * 60000 - (process.env.ON_HEROKU ? 86400000 : 0);
+
     currentChat.reminders.push({
       text: rest.replace(ret[0].text, ''),
       date: date.toISOString(),
       thread_id: currentThreadId
     });
+
     var now = new Date();
     now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime();
-    console.log(date, time, now, now - time);
+
     if(now >= time) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
     } else {
