@@ -124,7 +124,7 @@ function startBot(api, chats) {
 
     var date = ret[0].start.date();
     var time = date.getTime() + (new Date()).getTimezoneOffset() * 60000;
-
+    console.log((new Date()).getTimezoneOffset());
     currentChat.reminders.push({
       text: rest.replace(ret[0].text, ''),
       date: date.toISOString(),
