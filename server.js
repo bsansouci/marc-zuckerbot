@@ -1,6 +1,7 @@
 var login = require("facebook-chat-api");
 var chrono = require('chrono-node');
 var Firebase = require("firebase");
+var shortId = require('shortid');
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -17,13 +18,21 @@ setInterval(function() {
 }, 1800000 * Math.random() + 1200000); // between 20 and 50 min
 
 
-
-
 if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
 var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
+var chatsDB = db.child("chats");
+var listsDB = db.child("lists");
+var usersDB = db.child("users");
 
-function startBot(api, chats) {
+function startBot(api, chats, lists, users) {
+  // Defaults in case they don't exist (because firebase doesn't save empty
+  // objects)
+  chats = chats || {};
+  lists = lists || {};
+  users = users || {};
+
   var currentUsername;
+  var currentUserId;
   var currentThreadId;
   var currentChat;
   var currentOtherUsernames;
@@ -33,7 +42,7 @@ function startBot(api, chats) {
     chats[d.thread_id].reminders = chats[d.thread_id].reminders.filter(function(v) {
       return v.text !== d.text || v.date !== d.date;
     });
-    db.set(chats);
+    chatsDB.set(chats);
   };
 
   var now = Date.now();
@@ -55,7 +64,7 @@ function startBot(api, chats) {
     if(err) return console.error(err);
 
     console.log("Received ->", message);
-    var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.participant_names);
+    var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.sender_id, message.participant_names);
     console.log("Sending ->", msg);
 
     if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
@@ -65,7 +74,7 @@ function startBot(api, chats) {
 
 
   // messages, username, chat id are Strings, otherUsernmaes is array of Strings
-  var read = function(message, username, thread_id, otherUsernames) {
+  var read = function(message, username, thread_id, userId, otherUsernames) {
     // Default chat object or existing one
     // And set the global object
     currentChat = chats[thread_id] = chats[thread_id] || {
@@ -73,8 +82,6 @@ function startBot(api, chats) {
       scores: {},
       existingChat: false
     };
-    currentThreadId = thread_id;
-
     if(!currentChat.lists) currentChat.lists = {};
     if(!currentChat.scores) currentChat.scores = {};
     if(!currentChat.reminders) currentChat.reminders = [];
@@ -83,19 +90,27 @@ function startBot(api, chats) {
       currentChat.existingChat = true;
       api.sendMessage("Hey, type '/help' for some useful commands!", thread_id);
     }
-
+    currentThreadId = thread_id;
+    currentUserId = userId;
     currentUsername = username;
     currentOtherUsernames = otherUsernames;
+
     var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, sendStickerBigSmall, staticText, reminders, setTimezone];
     for (var i = 0; i < textFunctions.length; i++) {
         var res = textFunctions[i](message);
         if (res) {
           // Async saving to firebase
-          db.set(chats);
+          chatsDB.set(chats);
+          listsDB.set(lists);
+          usersDB.set(users);
           return res;
         }
     }
     return {};
+  };
+
+  var setPhoneNumber = function(msg) {
+
   };
 
   var setTimezone = function(msg) {
@@ -227,7 +242,7 @@ function startBot(api, chats) {
       if (!match || match.length < 1) return;
 
       var general = match[1].trim();
-      return {text: ("*salute* General " + general)};
+      return {text: "*salute* General " + general};
   };
 
   var score = function(msg) {
@@ -314,29 +329,70 @@ function startBot(api, chats) {
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
 
-    var list = match[1].trim().toLowerCase();
+    var list = match[1].trim();
     var arr = list.split(/\s+/);
     if(arr.length === 1) return {text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
       return (i + 1) + " - " + v;
     }).join("\n") : "No existing list.")};
 
-    var keyword = arr[1];
+    var keyword = arr[1].toLowerCase();
     var listName = arr.length > 2 ? arr[2] : "";
     if(keyword === 'new') {
+      if(currentChat.lists[listName]) {
+        return {text: "List '" + listName + "' already exists."};
+      }
       if(listName.length > 0) {
-        currentChat.lists[listName] = [];
+        var newList = {
+          id: shortId.generate(),
+          name: listName,
+          thread_id: currentThreadId
+        };
+        currentChat.lists[listName] = newList;
+
+        lists[newList.id] = {
+          name: listName,
+          thread_id: currentThreadId,
+          content: []
+        };
         return {text: "List '" + listName + "' created."};
       }
     } else if (keyword === 'delete') {
+      console.log(currentChat.lists[listName]);
+      console.log(num);
+      console.log(lists[currentChat.lists[listName].id]);
+
+      if (!currentChat.lists[listName]) {
+        return {text: "No list of name '"+listName+"' exists."};
+      }
+
+      if(!lists[currentChat.lists[listName].id].content) {
+        return {text: "List '" + listName + "' is emtpy."};
+      }
+
+      // If the delete command was given a number
       if(arr.length > 3) {
         var num = parseInt(arr[3]);
-        if(num - 1 >= currentChat.lists[listName].length || num - 1 < 0) {
+        if(isNaN(num)) return {text: num + " isn't an an item number in the list " + listName + "."};
+
+        if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
           return {text: "Item " + num + " in list '" + listName + "' doesn't exist."};
         }
-        currentChat.lists[listName].splice(num - 1, 1);
-        return {text: "Item " + num + " in list '" + listName + "' deleted."};
+
+        // Remove the item at index num - 1 (0 indexed here, 1 indexed for
+        // users)
+        lists[currentChat.lists[listName].id].content.splice(num - 1, 1);
+
+        // We then print the modified list
+        return {text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")};
       }
+
+      // If the delete command wasn't given a number, we assum the user wants
+      // to delete the whole list
       if(listName.length > 0) {
+        // We check for permissions to delete the whole list
+        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. You are not the author of the list."};
+
+        delete lists[currentChat.lists[listName].id];
         delete currentChat.lists[listName];
         return {text: "List '" + listName + "' deleted."};
       }
@@ -345,11 +401,58 @@ function startBot(api, chats) {
         if (!currentChat.lists[listName]) {
           return {text: "No list of name '"+listName+"' exists."};
         }
-        currentChat.lists[listName].push(arr.slice(3).join(' '));
+        if(!lists[currentChat.lists[listName].id].content) {
+          lists[currentChat.lists[listName].id].content = [];
+        }
+        var item = {
+          data: arr.slice(3).join(' '),
+          creator: currentUsername
+        };
+        lists[currentChat.lists[listName].id].content.push(item);
         return {text: "Added '" + arr.slice(3).join(' ') + "' to " + listName + "."};
       }
+    } else if(keyword === 'import') {
+      var id = listName;
+
+      if (!lists[id]) {
+        return {text: id+" isn't a valid list ID."};
+      }
+
+      currentChat.lists[lists[id].name] = {
+        id: id,
+        name: lists[id].name,
+        thread_id: lists[id].thread_id
+      };
+
+      return {text: "List '" + lists[id].name +"' added to current thread."};
+    } else if(keyword === 'share') {
+      if (!currentChat.lists[listName]) {
+        return {text: "No list of name '"+listName+"' exists."};
+      }
+
+      return {text: "/list import " + currentChat.lists[listName].id};
+    } else if(keyword === 'blame') {
+      if (!currentChat.lists[listName]) {
+        return {text: "No list of name '"+listName+"' exists."};
+      }
+      if(arr.length > 3) {
+        var num = parseInt(arr[3]);
+        if(isNaN(num)) return {text: num + " isn't an an item number in the list " + listName + "."};
+
+        if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
+          return {text: "Item " + num + " in list '" + listName + "' doesn't exist."};
+        }
+
+        var item = lists[currentChat.lists[listName].id].content[num - 1];
+        return {text: "Item " + num + " was added by " + item.creator};
+      }
+
+      return {text: "Usage: /list blame list-name item-number"};
     } else if (currentChat.lists[keyword]) {
-      return {text: keyword + ": \n" + currentChat.lists[keyword].map(function(v, i) {return (i + 1) + " - " + v;}).join("\n")};
+      if(!lists[currentChat.lists[keyword].id].content) {
+        return {text: "List '" + keyword + "' is emtpy."};
+      }
+      return {text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")};
     }
 
     return {text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name \n /list add list-name new-element"};
@@ -395,10 +498,10 @@ function startBot(api, chats) {
 
 // Main function
 db.once('value', function(snapshot) {
-  var chats = snapshot.val() || {};
+  var data = snapshot.val() || {};
   login(function(err, api) {
     if(err) return console.error(err);
 
-    startBot(api, chats);
+    startBot(api, data.chats, data.lists, data.users);
   });
 });
