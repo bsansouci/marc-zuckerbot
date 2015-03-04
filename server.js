@@ -68,8 +68,8 @@ function startBot(api, chats, lists, users) {
     console.log("Sending ->", msg);
 
     if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
-
-    if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
+    else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
+    else api.markAsRead(message.thread_id);
   });
 
 
