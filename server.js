@@ -2,6 +2,7 @@ var login = require("facebook-chat-api");
 var chrono = require('chrono-node');
 var Firebase = require("firebase");
 var shortId = require('shortid');
+var phonetic = require("phonetic");
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -23,13 +24,15 @@ var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 var chatsDB = db.child("chats");
 var listsDB = db.child("lists");
 var usersDB = db.child("users");
+var anonymousUsersDB = db.child("anonymous-users");
 
-function startBot(api, chats, lists, users) {
+function startBot(api, chats, lists, users, anonymousUsers) {
   // Defaults in case they don't exist (because firebase doesn't save empty
   // objects)
   chats = chats || {};
   lists = lists || {};
   users = users || {};
+  anonymousUsers = anonymousUsers || {};
 
   var currentUsername;
   var currentUserId;
@@ -103,6 +106,7 @@ function startBot(api, chats, lists, users) {
           chatsDB.set(chats);
           listsDB.set(lists);
           usersDB.set(users);
+          anonymousUsersDB.set(anonymousUsers);
           return res;
         }
     }
@@ -128,7 +132,20 @@ function startBot(api, chats, lists, users) {
     }
     var message = words[1].trim();
 
-    api.sendDirectMessage(hashUsername(currentUsername) + " : '" + message + "'", name, function(err) {
+    var anonymousName = phonetic.generate({seed: currentUserId});
+    var num = 1;
+    var cached = anonymousName;
+    while(anonymousUsers[anonymousName]) {
+      anonymousName = cached + (num++);
+    }
+    anonymousUsers[anonymousName] = currentUserId;
+
+    // If the given name is an anonymous user, we use the stored userId to send
+    // the message
+    if(anonymousUsers[name]) {
+      name = parseInt(anonymousUsers[name]);
+    }
+    api.sendDirectMessage(anonymousName + ": '" + message + "'", name, function(err) {
       if(err) console.log(err);
     });
 
@@ -546,6 +563,6 @@ db.once('value', function(snapshot) {
   login(function(err, api) {
     if(err) return console.error(err);
 
-    startBot(api, data.chats, data.lists, data.users);
+    startBot(api, data.chats, data.lists, data.users, data.anonymousUsers);
   });
 });
