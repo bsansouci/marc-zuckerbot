@@ -95,7 +95,7 @@ function startBot(api, chats, lists, users) {
     currentUsername = username;
     currentOtherUsernames = otherUsernames;
 
-    var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, sendStickerBigSmall, staticText, reminders, setTimezone];
+    var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, sendStickerBigSmall, staticText, reminders, setTimezone, sendPrivate];
     for (var i = 0; i < textFunctions.length; i++) {
         var res = textFunctions[i](message);
         if (res) {
@@ -111,6 +111,28 @@ function startBot(api, chats, lists, users) {
 
   var setPhoneNumber = function(msg) {
 
+  };
+
+  var sendPrivate = function(msg) {
+    var myRegexp = /\/send-private (.*)/i;
+    var match = myRegexp.exec(msg);
+    if(!match || match.length === 0) return;
+    var words = match[1].trim().split(':');
+
+    if(words.length < 2) return {text: 'Usage: /send-private name : message'};
+
+    var name = "";
+    var tmp = words[0].split(' ');
+    for (var i = 0; i < tmp.length; i++) {
+      name += tmp[i];
+    }
+    var message = words[1].trim();
+
+    api.sendDirectMessage(hashUsername(currentUsername) + " : '" + message + "'", name, function(err) {
+      if(err) console.log(err);
+    });
+
+    return {text: "Message '"+message+"' sent."};
   };
 
   var setTimezone = function(msg) {
@@ -390,10 +412,19 @@ function startBot(api, chats, lists, users) {
       // to delete the whole list
       if(listName.length > 0) {
         // We check for permissions to delete the whole list
-        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. You are not the author of the list."};
-
-        delete lists[currentChat.lists[listName].id];
+        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. You created this list in another chat."};
+        var id = currentChat.lists[listName].id;
+        delete lists[id];
         delete currentChat.lists[listName];
+
+        // Now we need to iterate through all the chats and remove that list
+        // from any chat that has it
+
+        for(var prop in chats) {
+          if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[listName] && chats[prop].lists[listName].id === id) {
+            delete chats[prop].lists[listName];
+          }
+        }
         return {text: "List '" + listName + "' deleted."};
       }
     } else if (keyword === 'add') {
@@ -430,7 +461,7 @@ function startBot(api, chats, lists, users) {
         return {text: "No list of name '"+listName+"' exists."};
       }
 
-      return {text: "/list import " + currentChat.lists[listName].id};
+      return {text: "Paste this into another chat to import the list '"+listName+"':\n/list import " + currentChat.lists[listName].id};
     } else if(keyword === 'blame') {
       if (!currentChat.lists[listName]) {
         return {text: "No list of name '"+listName+"' exists."};
@@ -473,6 +504,19 @@ function startBot(api, chats, lists, users) {
     }
     return {text: "Top Score: " + maxName+ ", with "+max+" points."};
   };
+
+  function hashUsername(name) {
+    var arr = name.split('').map(function(v) {return v.charCodeAt(0);});
+    arr[0] = (arr[0] + arr[arr[1] % arr.length]) % 26 + 97;
+    for (var i = 1; i < arr.length; i++) {
+      arr[i] = (arr[i] + arr[i - 1] % arr.length) % 26 + 97;
+    }
+
+    return arr.reduce(function(acc, val) {
+      acc += String.fromCharCode(val);
+      return acc;
+    }, "");
+  }
 
   function capitalize(name) {
     return name.charAt(0).toUpperCase() + name.slice(1);
