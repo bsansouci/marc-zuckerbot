@@ -132,7 +132,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
     var message = words[1].trim();
 
-    var anonymousName = phonetic.generate({seed: currentUserId});
+    var anonymousName = phonetic.generate({seed: currentUserId}).toLowerCase();
     var num = 1;
     var cached = anonymousName;
     while(anonymousUsers[anonymousName]) {
