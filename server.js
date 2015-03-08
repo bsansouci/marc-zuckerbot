@@ -98,7 +98,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     currentUsername = username;
     currentOtherUsernames = otherUsernames;
 
-    var textFunctions = [salute, weekendText, addScore, score, sexxiBatman, bees, ping, xkcdSearch, albert, arbitraryLists, slap, topScore, sendStickerBigSmall, staticText, reminders, setTimezone, sendPrivate];
+    var textFunctions = [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, staticText, salute, weekendText, sexxiBatman, bees, albert];
     for (var i = 0; i < textFunctions.length; i++) {
         var res = textFunctions[i](message);
         if (res) {
@@ -141,12 +141,12 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       anonymousName = cached + (num++);
     }
     anonymousUsers[anonymousName] = currentUserId;
-    console.log(anonymousName, message, name);
     // If the given name is an anonymous user, we use the stored userId to send
     // the message
     if(anonymousUsers[name]) {
       name = parseInt(anonymousUsers[name]);
     }
+    console.log(anonymousName, message, name);
     api.sendDirectMessage(anonymousName + ": '" + message + "'", name, function(err) {
       if(err) console.log(err);
     });
