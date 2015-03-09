@@ -3,6 +3,7 @@ var chrono = require('chrono-node');
 var Firebase = require("firebase");
 var shortId = require('shortid');
 var phonetic = require("phonetic");
+var request = require("request");
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -26,7 +27,46 @@ var listsDB = db.child("lists");
 var usersDB = db.child("users");
 var anonymousUsersDB = db.child("anonymousUsers");
 
+
+function _get(url, qs, callback) {
+  if(typeof qs === 'function') {
+    callback = qs;
+    qs = {};
+  }
+  for(var prop in qs) {
+    if(typeof qs[prop] === "object") {
+      console.log("You probably shouldn't pass an object inside the form at property", prop, qs);
+      continue;
+    }
+    qs[prop] = qs[prop].toString();
+  }
+  var op = {
+    headers: {
+      'Content-Type' : 'application/x-www-form-urlencoded',
+      'Referer' : 'https://www.facebook.com/',
+      'Host' : url.replace('https://', '').split("/")[0],
+      'Origin' : 'https://www.facebook.com',
+      'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18',
+      'Connection' : 'keep-alive',
+    },
+    timeout: 60000,
+    qs: qs,
+    url: url,
+    method: "GET",
+    gzip: true
+  };
+
+  request(op, callback);
+}
+
 function startBot(api, chats, lists, users, anonymousUsers) {
+  // If there is no state, the toString() function on an undefined property
+  // will return the string undefined. This is going to be our default.
+  var allCommands = {
+    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    "in-game": [pipeToEric]
+  };
+
   // Defaults in case they don't exist (because firebase doesn't save empty
   // objects)
   chats = chats || {};
@@ -39,14 +79,15 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   var currentThreadId;
   var currentChat;
   var currentOtherUsernames;
+  var currentOtherIds;
 
-  var timerDone = function(d) {
+  function timerDone(d) {
     api.sendMessage('Reminder: ' + d.text, d.thread_id);
     chats[d.thread_id].reminders = chats[d.thread_id].reminders.filter(function(v) {
       return v.text !== d.text || v.date !== d.date;
     });
     chatsDB.set(chats);
-  };
+  }
 
   var now = Date.now();
   for(var prop in chats) {
@@ -67,17 +108,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(err) return console.error(err);
 
     console.log("Received ->", message);
-    var msg = read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.sender_id, message.participant_names);
-    console.log("Sending ->", msg);
-
-    if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
-    else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
-    else api.markAsRead(message.thread_id);
+    read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.sender_id, message.participant_names, message.participant_ids, function(msg) {
+      if(!msg) return;
+      console.log("Sending ->", msg);
+      if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
+      else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
+      else api.markAsRead(message.thread_id)
+    });
   });
 
 
-  // messages, username, chat id are Strings, otherUsernmaes is array of Strings
-  var read = function(message, username, thread_id, userId, otherUsernames) {
+  // messages, username, chat id are Strings, otherUsernames is array of Strings
+  function read(message, username, thread_id, userId, otherUsernames, otherIds, callback) {
     // Default chat object or existing one
     // And set the global object
     currentChat = chats[thread_id] = chats[thread_id] || {
@@ -88,6 +130,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(!currentChat.lists) currentChat.lists = {};
     if(!currentChat.scores) currentChat.scores = {};
     if(!currentChat.reminders) currentChat.reminders = [];
+    if(!users[userId]) users[userId] = {};
 
     if (!currentChat.existingChat){
       currentChat.existingChat = true;
@@ -98,27 +141,100 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     currentUsername = username;
     currentOtherUsernames = otherUsernames;
 
-    var textFunctions = [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, staticText, salute, weekendText, sexxiBatman, bees, albert];
-    for (var i = 0; i < textFunctions.length; i++) {
-        var res = textFunctions[i](message);
-        if (res) {
-          // Async saving to firebase
-          chatsDB.set(chats);
-          listsDB.set(lists);
-          usersDB.set(users);
-          anonymousUsersDB.set(anonymousUsers);
-          return res;
-        }
+    // Remove one Marc
+    if(currentOtherUsernames.indexOf("Marc") !== -1) {
+      currentOtherUsernames.splice(currentOtherUsernames.indexOf("Marc"), 1);
     }
-    return {};
-  };
 
-  var setPhoneNumber = function(msg) {
+    // Remove marc from this list
+    currentOtherIds = otherIds.filter(function(v) {return v !== 100009069356507;});
 
-  };
+    var availableCommands = allCommands.default;
+    if(users[currentUserId] && users[currentUserId][thread_id]) {
+      availableCommands = allCommands[users[currentUserId][thread_id].state];
+    }
 
-  var sendPrivate = function(msg) {
-    var myRegexp = /\/send-private (.*)/i;
+    for (var i = 0; i < availableCommands.length; i++) {
+      availableCommands[i](message, function(msg) {
+        // Async saving to firebase
+        chatsDB.set(chats);
+        listsDB.set(lists);
+        usersDB.set(users);
+        anonymousUsersDB.set(anonymousUsers);
+        callback(msg);
+      });
+    }
+  }
+
+  function pipeToEric(msg, sendReply) {
+    var myRegexp = /^\/(.*)/i;
+    var match = myRegexp.exec(msg);
+    if(!match || match.length === 0) return;
+    var toSend = match[1].trim();
+    if(toSend === "stop-game") {
+      currentOtherIds.map(function(v) {
+        if(users[v]) delete users[v][currentThreadId];
+      });
+      // return sendReply({text: "Game stopped"});
+    }
+    _get("http://192.168.1.106:34567/?data=" + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
+      var arr = html.split("@@");
+      arr = arr.map(function(v) {
+        return currentOtherIds.reduce(function(acc, u) {
+          console.log(acc, u);
+          return acc.replace(u, currentOtherUsernames[currentOtherIds.indexOf(u)]);
+        }, v);
+      });
+      if(arr.length === 1) {
+        return sendReply({text: arr[0]});
+      }
+      sendReply({text: arr[0]});
+      var characters = arr.slice(1, arr.length);
+      for (var i = 0; i < characters.length; i += 2) {
+        var playerId = parseInt(characters[i]);
+        var char = characters[i+1];
+        api.sendMessage(currentOtherUsernames[currentOtherIds.indexOf(playerId)] + char, playerId, function(err) {
+          if(err) throw err;
+        });
+      }
+    });
+  }
+
+  function ericGame(msg, sendReply) {
+    var myRegexp = /^\/(start-game.*)/i;
+    var match = myRegexp.exec(msg);
+
+    if(!match || match.length === 0) return;
+
+    var difficulty = match[1].trim().split(' ')[1];
+
+    _get("http://192.168.1.106:34567/?data="+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+      var arr = html.split("@@");
+      if(arr.length === 1) {
+        return sendReply({text: html});
+      }
+
+      currentOtherIds.map(function(v) {
+        users[v] = users[v] || {};
+        users[v][currentThreadId] = {
+          state:"in-game"
+        };
+      });
+
+      sendReply({text: arr[0]});
+      var characters = arr.slice(1, arr.length);
+      for (var i = 0; i < characters.length; i += 2) {
+        var playerId = parseInt(characters[i]);
+        var char = characters[i+1];
+        api.sendMessage(currentOtherUsernames[currentOtherIds.indexOf(playerId)] + char, playerId, function(err) {
+          if(err) throw err;
+        });
+      }
+    });
+  }
+
+  function sendPrivate(msg, sendReply) {
+    var myRegexp = /^\/send-private (.*)/i;
     var match = myRegexp.exec(msg);
     if(!match || match.length === 0) return;
     var words = match[1].trim().split(':');
@@ -146,16 +262,16 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(anonymousUsers[name]) {
       name = parseInt(anonymousUsers[name]);
     }
-    console.log(anonymousName, message, name);
+
     api.sendDirectMessage(anonymousName + ": '" + message + "'", name, function(err) {
       if(err) console.log(err);
     });
 
-    return {text: "Message '"+message+"' sent."};
-  };
+    return sendReply({text: "Message '"+message+"' sent."});
+  }
 
-  var setTimezone = function(msg) {
-    var myRegexp = /\/settimezone (.*)/i;
+  function setTimezone(msg, sendReply) {
+    var myRegexp = /^\/settimezone (.*)/i;
     var match = myRegexp.exec(msg);
     if(!match || match.length === 0) return;
     var rest = match[1].trim();
@@ -163,18 +279,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     currentChat.timezone = rest;
 
-    return {
+    return sendReply({
       text: "Set the currentChat timezone to " + rest + "."
-    };
-  };
+    });
+  }
 
-  var reminders = function(msg) {
-    var myRegexp = /\/remind(.*)/i;
+  function reminders(msg, sendReply) {
+    var myRegexp = /^\/remind(.*)/i;
     var match = myRegexp.exec(msg);
     if(!match || match.length === 0) return;
     var rest = match[1].trim();
     console.log(rest);
-    if(!currentChat.hasOwnProperty("timezone")) return {text: "Please set your timezone with the /settimezone command"};
+    if(!currentChat.hasOwnProperty("timezone")) return sendReply({text: "Please set your timezone with the /settimezone command"});
     var ret = chrono.parse(rest + " " + currentChat.timezone);
     if(ret.length === 0) return;
 
@@ -195,16 +311,16 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     } else {
       setTimeout(timerDone, time - now, currentChat.reminders[currentChat.reminders.length - 1]);
     }
-    return {text: "Reminder at: " + date.toISOString().replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''};
-  };
+    return sendReply({text: "Reminder at: " + date.toISOString().replace(/T/, ' ').replace(/\..+/, '') + " --> '" + rest.replace(ret[0].text, '')+'\''});
+  }
 
-  var staticText = function(msg) {
+  function staticText(msg, sendReply) {
       var possibilities = [
           [[/(hey marc$|marc\?)/i],["Sup", "Hey :D", "hey", "Me?", "yes?"]],
           [[/(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
-          [[/(\/sayit)/i], ["David's an idiot"]],
-          [[/\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore"]],
+          [[/(^\/sayit)/i], ["David's an idiot"]],
+          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore"]],
           [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
@@ -212,13 +328,13 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           for (var j = 0; j < possibleMatches.length; j++) {
               var match = possibleMatches[j].exec(msg);
               if(match && match.length > 0) {
-                  return {text: randFrom(possibilities[i][1])};
+                  return sendReply({text: randFrom(possibilities[i][1])});
               }
           }
       }
-  };
+  }
 
-  var sendStickerBigSmall = function(msg) {
+  function sendStickerBigSmall(msg, sendReply) {
       var possibilities = [
           [[/(small|big)/i], [767334526626290, 767334556626287, 767334506626292]]
       ];
@@ -227,41 +343,41 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           for (var j = 0; j < possibleMatches.length; j++) {
               var match = possibleMatches[j].exec(msg);
               if(match && match.length > 0) {
-                  return {sticker_id: randFrom(possibilities[i][1])};
+                  return sendReply({sticker_id: randFrom(possibilities[i][1])});
               }
           }
       }
-  };
+  }
 
-  var slap = function(msg) {
+  function slap(msg, sendReply) {
     var myRegexp = /^\/(slap\s*.*)/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
 
     var arr = match[1].trim().toLowerCase();
     var list = arr.split(/\s+/);
-    if(list.length === 1) return {text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."};
+    if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."});
 
     var name = list[1];
-    if(name === "me") return {text: currentUsername + " just go slapped." + (Math.random() > 0.5 ? " Hard.": "")};
+    if(name === "me") return sendReply({text: currentUsername + " just go slapped." + (Math.random() > 0.5 ? " Hard.": "")});
 
     if(anonymousUsers[name]) {
       api.sendMessage(getAnonymous(currentUserId) + " just slapped you.", anonymousUsers[name]);
-      return {text: name + " was told that they got slapped."};
+      return sendReply({text: name + " was told that they got slapped."});
     }
 
-    return {text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")};
-  };
+    return sendReply({text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")});
+  }
 
-  var weekendText = function(msg) {
+  function weekendText(msg, sendReply) {
     var myRegexp = /is it (weekend)\s?\?/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
     var today = new Date();
-    return {text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")};
-  };
+    return sendReply({text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")});
+  }
 
-  var addScore = function(msg) {
+  function addScore(msg, sendReply) {
     var myRegexp = /^(.+)\+\+/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
@@ -269,27 +385,27 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     name = capitalize(name);
     if (name === currentUsername) {
-      return {text: name + ", you can't upvote yourself -_- "};
+      return sendReply({text: name + ", you can't upvote yourself -_- "});
     }
     if (contains(currentOtherUsernames, name)) {
       var score = (currentChat.scores[name] ? currentChat.scores[name] : 0) + 1;
       currentChat.scores[name] = score;
-      return {text: name + "'s score is now " + score + "."};
+      return sendReply({text: name + "'s score is now " + score + "."});
     }
 
-    return {text: "Who's " + name + "?"};
-  };
+    return sendReply({text: "Who's " + name + "?"});
+  }
 
-  var salute = function(msg) {
+  function salute(msg, sendReply) {
       var myRegexp = /general\s+(\w+)/i;
       var match = myRegexp.exec(msg);
       if (!match || match.length < 1) return;
 
       var general = match[1].trim();
-      return {text: "*salute* General " + general};
-  };
+      return sendReply({text: "*salute* General " + general});
+  }
 
-  var score = function(msg) {
+  function score(msg, sendReply) {
     var myRegexp = /^\/score([\w .\-]*)$/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
@@ -297,49 +413,49 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if (name.length < 1 || name === "me") name = currentUsername;
 
     name = capitalize(name);
-    if (!contains(currentOtherUsernames, name)) return {text: "who?"};
+    if (!contains(currentOtherUsernames, name)) return sendReply({text: "who?"});
 
     var pts = currentChat.scores[name] ? currentChat.scores[name] : 0;
-    return {text: ("" + name + " has " + pts + " points")};
-  };
+    return sendReply({text: ("" + name + " has " + pts + " points")});
+  }
 
-  var albert = function(msg) {
+  function albert(msg, sendReply) {
     var myRegexp = /^\/albert$/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
     var k =  "\n         ,---,_          ,\n          _>   `'-.  .--'/\n     .--'` ._      `/   <_\n      >,-' ._'.. ..__ . ' '-.\n   .-'   .'`         `'.     '.\n    >   / >`-.     .-'< \\ , '._\\\n   /    ; '-._>   <_.-' ;  '._>\n   `>  ,/  /___\\ /___\\  \\_  /\n   `.-|(|  \\o_/  \\o_/   |)|`\n       \\;        \\      ;/\n         \\  .-,   )-.  /\n          /`  .'-'.  `\\\n         ;_.-`.___.'-.;\n";
-    return {text: k};
-  };
+    return sendReply({text: k});
+  }
 
-  var bees = function(msg) {
+  function bees(msg, sendReply) {
     if (msg.indexOf("bees") > -1) {
-      return {text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"};
+      return sendReply({text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"});
     }
-  };
+  }
 
-  var sexxiBatman = function(msg) {
-    if (msg.match(/[Ww]anna make some trouble[\s\t]*/)) {
-      return {text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"};
+  function sexxiBatman(msg, sendReply) {
+    if (msg.match(/wanna make some trouble[\s\t]*/i)) {
+      return sendReply({text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"});
     }
-  };
+  }
 
-  var ping = function(msg) {
+  function ping(msg, sendReply) {
     var myRegexp = /^\/ping$/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
-    return {text: "pong"};
-  };
+    return sendReply({text: "pong"});
+  }
 
-  var xkcdSearch = function(msg) {
+  function xkcdSearch(msg, sendReply) {
     var myRegexp = /^\/xkcd\s+(.+)/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
     var search = match[1].trim().toLowerCase().replace(/ /g, "+");
     var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
-    return {text: "Find relevant xkcds here: " + searchUrl};
-  };
+    return sendReply({text: "Find relevant xkcds here: " + searchUrl});
+  }
 
-  var giphySearch = function(msg) {
+  function giphySearch(msg, sendReply) {
     var data = "";
     if(msg.indexOf("giphy") > -1) {
       var strippedString = msg.replace(/^\s+|\s+$/g, '');
@@ -353,9 +469,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         if (request.status >= 200 && request.status < 400){
           data = JSON.parse(request.responseText).data.image_url;
           console.log(data);
-          return {text: data};
+          return sendReply({text: data});
         } else {
-          return {text: "No gif for this search result."};
+          return sendReply({text: "No gif for this search result."});
         }
       };
 
@@ -366,24 +482,24 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       request.send(null);
       console.log("request sent");
     }
-  };
+  }
 
-  var arbitraryLists = function (msg) {
+  function arbitraryLists(msg, sendReply) {
     var myRegexp = /^\/(list\s*.*)/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
 
     var list = match[1].trim();
     var arr = list.split(/\s+/);
-    if(arr.length === 1) return {text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
+    if(arr.length === 1) return sendReply({text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
       return (i + 1) + " - " + v;
-    }).join("\n") : "No existing list.")};
+    }).join("\n") : "No existing list.")});
 
     var keyword = arr[1].toLowerCase();
     var listName = arr.length > 2 ? arr[2] : "";
     if(keyword === 'new') {
       if(currentChat.lists[listName]) {
-        return {text: "List '" + listName + "' already exists."};
+        return sendReply({text: "List '" + listName + "' already exists."});
       }
       if(listName.length > 0) {
         var newList = {
@@ -398,7 +514,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           thread_id: currentThreadId,
           content: []
         };
-        return {text: "List '" + listName + "' created."};
+        return sendReply({text: "List '" + listName + "' created."});
       }
     } else if (keyword === 'delete') {
       console.log(currentChat.lists[listName]);
@@ -406,20 +522,20 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       console.log(lists[currentChat.lists[listName].id]);
 
       if (!currentChat.lists[listName]) {
-        return {text: "No list of name '"+listName+"' exists."};
+        return sendReply({text: "No list of name '"+listName+"' exists."});
       }
 
       if(!lists[currentChat.lists[listName].id].content) {
-        return {text: "List '" + listName + "' is emtpy."};
+        return sendReply({text: "List '" + listName + "' is emtpy."});
       }
 
       // If the delete command was given a number
       if(arr.length > 3) {
         var num = parseInt(arr[3]);
-        if(isNaN(num)) return {text: num + " isn't an an item number in the list " + listName + "."};
+        if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
 
         if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
-          return {text: "Item " + num + " in list '" + listName + "' doesn't exist."};
+          return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
         }
 
         // Remove the item at index num - 1 (0 indexed here, 1 indexed for
@@ -427,7 +543,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         lists[currentChat.lists[listName].id].content.splice(num - 1, 1);
 
         // We then print the modified list
-        return {text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")};
+        return sendReply({text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
       }
 
       // If the delete command wasn't given a number, we assum the user wants
@@ -447,12 +563,12 @@ function startBot(api, chats, lists, users, anonymousUsers) {
             delete chats[prop].lists[listName];
           }
         }
-        return {text: "List '" + listName + "' deleted."};
+        return sendReply({text: "List '" + listName + "' deleted."});
       }
     } else if (keyword === 'add') {
       if(listName.length > 0 && arr.length > 3) {
         if (!currentChat.lists[listName]) {
-          return {text: "No list of name '"+listName+"' exists."};
+          return sendReply({text: "No list of name '"+listName+"' exists."});
         }
         if(!lists[currentChat.lists[listName].id].content) {
           lists[currentChat.lists[listName].id].content = [];
@@ -462,13 +578,13 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           creator: currentUsername
         };
         lists[currentChat.lists[listName].id].content.push(item);
-        return {text: "Added '" + arr.slice(3).join(' ') + "' to " + listName + "."};
+        return sendReply({text: "Added '" + arr.slice(3).join(' ') + "' to " + listName + "."});
       }
     } else if(keyword === 'import') {
       var id = listName;
 
       if (!lists[id]) {
-        return {text: id+" isn't a valid list ID."};
+        return sendReply({text: id+" isn't a valid list ID."});
       }
 
       currentChat.lists[lists[id].name] = {
@@ -477,41 +593,41 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         thread_id: lists[id].thread_id
       };
 
-      return {text: "List '" + lists[id].name +"' added to current thread."};
+      return sendReply({text: "List '" + lists[id].name +"' added to current thread."});
     } else if(keyword === 'share') {
       if (!currentChat.lists[listName]) {
-        return {text: "No list of name '"+listName+"' exists."};
+        return sendReply({text: "No list of name '"+listName+"' exists."});
       }
 
-      return {text: "Paste this into another chat to import the list '"+listName+"':\n/list import " + currentChat.lists[listName].id};
+      return sendReply({text: "Paste this into another chat to import the list '"+listName+"':\n/list import " + currentChat.lists[listName].id});
     } else if(keyword === 'blame') {
       if (!currentChat.lists[listName]) {
-        return {text: "No list of name '"+listName+"' exists."};
+        return sendReply({text: "No list of name '"+listName+"' exists."});
       }
       if(arr.length > 3) {
         var num = parseInt(arr[3]);
-        if(isNaN(num)) return {text: num + " isn't an an item number in the list " + listName + "."};
+        if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
 
         if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
-          return {text: "Item " + num + " in list '" + listName + "' doesn't exist."};
+          return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
         }
 
         var item = lists[currentChat.lists[listName].id].content[num - 1];
-        return {text: "Item " + num + " was added by " + item.creator};
+        return sendReply({text: "Item " + num + " was added by " + item.creator});
       }
 
-      return {text: "Usage: /list blame list-name item-number"};
+      return sendReply({text: "Usage: /list blame list-name item-number"});
     } else if (currentChat.lists[keyword]) {
       if(!lists[currentChat.lists[keyword].id].content) {
-        return {text: "List '" + keyword + "' is emtpy."};
+        return sendReply({text: "List '" + keyword + "' is emtpy."});
       }
-      return {text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")};
+      return sendReply({text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
     }
 
-    return {text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name \n /list add list-name new-element"};
-  };
+    return sendReply({text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name \n /list add list-name new-element"});
+  }
 
-  var topScore = function(msg) {
+  function topScore(msg, sendReply) {
     var myRegexp = /^\/(topscores?)$/i;
     var match = myRegexp.exec(msg);
     if (!match || match.length < 1) return;
@@ -524,8 +640,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         maxName = currentOtherUsernames[i];
       }
     }
-    return {text: "Top Score: " + maxName+ ", with "+max+" points."};
-  };
+    return sendReply({text: "Top Score: " + maxName+ ", with "+max+" points."});
+  }
 
   function hashUsername(name) {
     var arr = name.split('').map(function(v) {return v.charCodeAt(0);});
