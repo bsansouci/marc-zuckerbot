@@ -177,7 +177,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       });
       // return sendReply({text: "Game stopped"});
     }
-    _get("http://192.168.1.106:34567/?data=" + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
+    _get("http://104.131.106.20:34567/?data=" + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
       var arr = html.split("@@");
       arr = arr.map(function(v) {
         return currentOtherIds.reduce(function(acc, u) {
@@ -208,7 +208,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var difficulty = match[1].trim().split(' ')[1];
 
-    _get("http://192.168.1.106:34567/?data="+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+    _get("http://104.131.106.20:34567/?data="+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
       var arr = html.split("@@");
       if(arr.length === 1) {
         return sendReply({text: html});
