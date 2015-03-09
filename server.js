@@ -21,6 +21,11 @@ setInterval(function() {
 
 
 if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
+
+if(!process.env.ERIC_URL) return console.error("Need ERIC_URL as env variable");
+
+var ericURL = process.env.ERIC_URL;
+
 var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 var chatsDB = db.child("chats");
 var listsDB = db.child("lists");
@@ -177,7 +182,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       });
       // return sendReply({text: "Game stopped"});
     }
-    _get("http://104.131.106.20:34567/?data=" + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
+    _get(ericURL + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
       var arr = html.split("@@");
       arr = arr.map(function(v) {
         return currentOtherIds.reduce(function(acc, u) {
@@ -208,7 +213,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var difficulty = match[1].trim().split(' ')[1];
 
-    _get("http://104.131.106.20:34567/?data="+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+    _get(ericURL+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
       var arr = html.split("@@");
       if(arr.length === 1) {
         return sendReply({text: html});
@@ -321,7 +326,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(^\/sayit)/i], ["David's an idiot"]],
           [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore"]],
-          [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]]
+          [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
+          [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too " + currentUsername + "."]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
           var possibleMatches = possibilities[i][0];
