@@ -342,7 +342,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
   function sendStickerBigSmall(msg, sendReply) {
       var possibilities = [
-          [[/(small|big)/i], [767334526626290, 767334556626287, 767334506626292]]
+          [[/( |^)(small|big)( |$)/i], [767334526626290, 767334556626287, 767334506626292]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
           var possibleMatches = possibilities[i][0];
