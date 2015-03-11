@@ -57,7 +57,7 @@ function _get(url, qs, callback) {
     timeout: 60000,
     qs: qs,
     url: url,
-    method: "GET",
+    method: 'GET',
     gzip: true
   };
 
@@ -68,9 +68,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
-    "in-game": [pipeToEric],
-    "ignored": [ignore]
+    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    'in-game': [pipeToEric],
+    'ignored': [ignore]
   };
 
   // Defaults in case they don't exist (because firebase doesn't save empty
@@ -119,7 +119,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       console.log("Sending ->", msg);
       if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
       else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
-      else api.markAsRead(message.thread_id)
+      else api.markAsRead(message.thread_id);
     });
   });
 
@@ -175,10 +175,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function ignore(msg, sendReply) {
-    var myRegexp = /^\/(ignore|unignore)/i;
-    var match = myRegexp.exec(msg);
-    if(!match || match.length === 0) return;
-    var text = match[1].trim();
+    var match = matches(/^\/(ignore|unignore)/i, msg);
+    if(!match) return;
+
+    var text = match.trim();
     if(text === "ignore") {
       if(users[currentUserId] && users[currentUserId].globalState === "ignored") {
         return sendReply({text: "I'm already ignoring you. If you want me to stop ignoring you please do /unignore."});
@@ -196,11 +196,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
   }
 
+  function reply(msg, sendReply) {
+    var match = matches(/^\/(reply .*)/i, msg);
+    if(!match) return;
+
+    if(!users[currentUserId] || !users[currentUserId].preMessage) return sendReply({text: "No previous message to reply to."});
+  }
+
   function pipeToEric(msg, sendReply) {
-    var myRegexp = /^\/(.*)/i;
-    var match = myRegexp.exec(msg);
-    if(!match || match.length === 0) return;
-    var toSend = match[1].trim();
+    var match = matches(/^\/(.*)/i, msg);
+    if(!match) return;
+
+    var toSend = match.trim();
     if(toSend === "stop-game") {
       currentOtherIds.map(function(v) {
         if(users[v]) delete users[v][currentThreadId];
@@ -231,14 +238,15 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function ericGame(msg, sendReply) {
-    var myRegexp = /^\/(start-game.*)/i;
-    var match = myRegexp.exec(msg);
+    var match = matches(/^\/(start-game.*)/i, msg);
+    if(!match) return;
 
-    if(!match || match.length === 0) return;
-
-    var difficulty = match[1].trim().split(' ')[1];
+    var difficulty = match.trim().split(' ')[1];
 
     _get(ericURL+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+      if(err) return console.error(err);
+      if(!html) return console.error("Empty packet....");
+
       var arr = html.split("@@");
       if(arr.length === 1) {
         return sendReply({text: html});
@@ -264,10 +272,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function sendPrivate(msg, sendReply) {
-    var myRegexp = /^\/send-private (.*)/i;
-    var match = myRegexp.exec(msg);
-    if(!match || match.length === 0) return;
-    var words = match[1].trim().split(':');
+    var match = matches(/^\/send-private (.*)/i, msg);
+    if(!match) return;
+
+    var words = match.trim().split(':');
 
     if(words.length < 2) return {text: 'Usage: /send-private name : message'};
 
@@ -301,10 +309,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function setTimezone(msg, sendReply) {
-    var myRegexp = /^\/settimezone (.*)/i;
-    var match = myRegexp.exec(msg);
-    if(!match || match.length === 0) return;
-    var rest = match[1].trim();
+    var match = matches(/^\/settimezone (.*)/i, msg);
+    if(!match) return;
+
+    var rest = match.trim();
     if(!timezonesOffsets[rest]) return;
 
     currentChat.timezone = rest;
@@ -315,17 +323,17 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function reminders(msg, sendReply) {
-    var myRegexp = /^\/remind(.*)/i;
-    var match = myRegexp.exec(msg);
-    if(!match || match.length === 0) return;
-    var rest = match[1].trim();
-    console.log(rest);
+    var match = matches(/^\/remind(.*)/i, msg);
+    if(!match) return;
+
+    var rest = match.trim();
+
     if(!currentChat.hasOwnProperty("timezone")) return sendReply({text: "Please set your timezone with the /settimezone command"});
     var ret = chrono.parse(rest + " " + currentChat.timezone);
     if(ret.length === 0) return;
 
     var date = ret[0].start.date();
-    var time = date.getTime() + (new Date()).getTimezoneOffset() * 60000 - (process.env.ON_HEROKU ? 86400000 : 0);
+    var time = new Date(date.toUTCString()).getTime();
 
     currentChat.reminders.push({
       text: rest.replace(ret[0].text, ''),
@@ -334,7 +342,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     });
 
     var now = new Date();
-    now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds()).getTime();
+    now = new Date(now.toUTCString()).getTime();
 
     if(now >= time) {
       timerDone(currentChat.reminders[currentChat.reminders.length - 1]);
@@ -381,11 +389,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function slap(msg, sendReply) {
-    var myRegexp = /^\/(slap\s*.*)/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var match = matches(/^\/(slap\s*.*)/i, msg);
+    if (!match) return;
 
-    var arr = match[1].trim().toLowerCase();
+    var arr = match.trim().toLowerCase();
     var list = arr.split(/\s+/);
     if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."});
 
@@ -401,18 +408,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function weekendText(msg, sendReply) {
-    var myRegexp = /is it (weekend)\s?\?/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var match = matches(/( |^)is it (weekend)\s*\?/i, msg);
+    if (!match) return;
+
     var today = new Date();
     return sendReply({text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")});
   }
 
   function addScore(msg, sendReply) {
-    var myRegexp = /^(.+)\+\+/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
-    var name = match[1].trim().toLowerCase();
+    var match = matches(/^(.+)\+\+/i, msg);
+    if (!match) return;
+
+    var name = match.trim().toLowerCase();
 
     name = capitalize(name);
     if (name === currentUsername) {
@@ -428,19 +435,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function salute(msg, sendReply) {
-      var myRegexp = /general\s+(\w+)/i;
-      var match = myRegexp.exec(msg);
-      if (!match || match.length < 1) return;
+      var match = matches(/general\s+(\w+)/i, msg);
+      if (!match) return;
 
-      var general = match[1].trim();
+      var general = match.trim();
       return sendReply({text: "*salute* General " + general});
   }
 
   function score(msg, sendReply) {
-    var myRegexp = /^\/score([\w .\-]*)$/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
-    var name = match[1].trim().toLowerCase();
+    var match = matches(/^\/score([\w .\-]*)$/i, msg);
+    if (!match) return;
+
+    var name = match.trim().toLowerCase();
     if (name.length < 1 || name === "me") name = currentUsername;
 
     name = capitalize(name);
@@ -451,37 +457,36 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function albert(msg, sendReply) {
-    var myRegexp = /^\/albert$/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var match = matches(/^\/albert$/i, msg);
+    if (!match) return;
     var k =  "\n         ,---,_          ,\n          _>   `'-.  .--'/\n     .--'` ._      `/   <_\n      >,-' ._'.. ..__ . ' '-.\n   .-'   .'`         `'.     '.\n    >   / >`-.     .-'< \\ , '._\\\n   /    ; '-._>   <_.-' ;  '._>\n   `>  ,/  /___\\ /___\\  \\_  /\n   `.-|(|  \\o_/  \\o_/   |)|`\n       \\;        \\      ;/\n         \\  .-,   )-.  /\n          /`  .'-'.  `\\\n         ;_.-`.___.'-.;\n";
     return sendReply({text: k});
   }
 
   function bees(msg, sendReply) {
-    if (msg.indexOf("bees") > -1) {
+    if (matches(/( |^)bees( |$)/i, msg)) {
       return sendReply({text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"});
     }
   }
 
   function sexxiBatman(msg, sendReply) {
-    if (msg.match(/wanna make some trouble[\s\t]*/i)) {
+    if (matches(/(wanna make some trouble)/i, msg)) {
       return sendReply({text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"});
     }
   }
 
   function ping(msg, sendReply) {
-    var myRegexp = /^\/ping$/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var match = matches(/^\/ping$/i, msg);
+    if (!match) return;
+
     return sendReply({text: "pong"});
   }
 
   function xkcdSearch(msg, sendReply) {
-    var myRegexp = /^\/xkcd\s+(.+)/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
-    var search = match[1].trim().toLowerCase().replace(/ /g, "+");
+    var match = matches(/^\/xkcd\s+(.+)/i, msg);
+    if (!match) return;
+
+    var search = match.trim().toLowerCase().replace(/ /g, "+");
     var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
     return sendReply({text: "Find relevant xkcds here: " + searchUrl});
   }
@@ -516,11 +521,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function arbitraryLists(msg, sendReply) {
-    var myRegexp = /^\/(list\s*.*)/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var list = matches(/^\/(list\s*.*)/i, msg);
+    if (!list) return;
 
-    var list = match[1].trim();
+    list = list.trim();
     var arr = list.split(/\s+/);
     if(arr.length === 1) return sendReply({text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
       return (i + 1) + " - " + v;
@@ -548,10 +552,6 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         return sendReply({text: "List '" + listName + "' created."});
       }
     } else if (keyword === 'delete') {
-      console.log(currentChat.lists[listName]);
-      console.log(num);
-      console.log(lists[currentChat.lists[listName].id]);
-
       if (!currentChat.lists[listName]) {
         return sendReply({text: "No list of name '"+listName+"' exists."});
       }
@@ -659,9 +659,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function topScore(msg, sendReply) {
-    var myRegexp = /^\/(topscores?)$/i;
-    var match = myRegexp.exec(msg);
-    if (!match || match.length < 1) return;
+    var match = matches(/^\/(topscores?)$/i, msg);
+
+    if (!match) return;
     var max = -1;
     var maxName = "";
     for (var i = 0; i < currentOtherUsernames.length; i++) {
@@ -672,6 +672,11 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       }
     }
     return sendReply({text: "Top Score: " + maxName+ ", with "+max+" points."});
+  }
+
+  function matches(regex, msg) {
+    var match = regex.exec(msg) || [];
+    return match[1];
   }
 
   function hashUsername(name) {
