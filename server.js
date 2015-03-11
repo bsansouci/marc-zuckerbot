@@ -22,9 +22,9 @@ setInterval(function() {
 
 if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
 
-if(!process.env.ERIC_URL) return console.error("Need ERIC_URL as env variable");
+var ericURL = "http://localhost:34567/?data=";
+if(process.env.ERIC_URL) ericURL = process.env.ERIC_URL;
 
-var ericURL = process.env.ERIC_URL;
 
 var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 var chatsDB = db.child("chats");
@@ -68,7 +68,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert],
     "in-game": [pipeToEric],
     "ignored": [ignore]
   };
