@@ -68,8 +68,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
-    "in-game": [pipeToEric]
+    "default": [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    "in-game": [pipeToEric],
+    "ignored": [ignore]
   };
 
   // Defaults in case they don't exist (because firebase doesn't save empty
@@ -157,6 +158,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var availableCommands = allCommands.default;
     if(users[currentUserId] && users[currentUserId][thread_id]) {
       availableCommands = allCommands[users[currentUserId][thread_id].state];
+    } else if (users[currentUserId] && users[currentUserId].globalState) {
+      availableCommands = allCommands[users[currentUserId].globalState];
     }
 
     for (var i = 0; i < availableCommands.length; i++) {
@@ -168,6 +171,28 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         anonymousUsersDB.set(anonymousUsers);
         callback(msg);
       });
+    }
+  }
+
+  function ignore(msg, sendReply) {
+    var myRegexp = /^\/(ignore|unignore)/i;
+    var match = myRegexp.exec(msg);
+    if(!match || match.length === 0) return;
+    var text = match[1].trim();
+    if(text === "ignore") {
+      if(users[currentUserId] && users[currentUserId].globalState === "ignored") {
+        return sendReply({text: "I'm already ignoring you. If you want me to stop ignoring you please do /unignore."});
+      }
+      users[currentUserId] = users[currentUserId] || {};
+      users[currentUserId].globalState = "ignored";
+      return sendReply({text: "Messages from you will now be ignored. Do /unignore to stop being ignored."});
+    } else {
+      if(users[currentUserId] && users[currentUserId].globalState === "ignored") {
+        delete users[currentUserId].globalState;
+        return sendReply({text: "Oh hey " + currentUsername + " you're there!"});
+      }
+
+      return sendReply({text: "Sorry I'm not ignoring you. If you want me to, do /ignore."});
     }
   }
 
