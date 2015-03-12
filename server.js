@@ -48,13 +48,11 @@ function _get(url, qs, callback) {
   var op = {
     headers: {
       'Content-Type' : 'application/x-www-form-urlencoded',
-      'Referer' : 'https://www.facebook.com/',
       'Host' : url.replace('https://', '').split("/")[0],
-      'Origin' : 'https://www.facebook.com',
       'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18',
       'Connection' : 'keep-alive',
     },
-    timeout: 60000,
+    timeout: 30000,
     qs: qs,
     url: url,
     method: 'GET',
@@ -68,7 +66,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
     'in-game': [pipeToEric],
     'ignored': [ignore]
   };
@@ -116,6 +114,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     console.log("Received ->", message);
     read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.sender_id, message.participant_names, message.participant_ids, function(msg) {
       if(!msg) return;
+
       console.log("Sending ->", msg);
       if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
       else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
@@ -199,6 +198,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   function reply(msg, sendReply) {
     var match = matches(/^\/(reply .*)/i, msg);
     if(!match) return;
+
+    return sendReply({text: "Can't reply for now, I'm working on it."});
 
     if(!users[currentUserId] || !users[currentUserId].preMessage) return sendReply({text: "No previous message to reply to."});
   }
@@ -354,8 +355,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
   function staticText(msg, sendReply) {
       var possibilities = [
-          [[/(hey marc$|marc\?)/i],["Sup", "Hey :D", "hey", "Me?", "yes?"]],
-          [[/(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
+          [[/^(hey )?marc\??$/i],["Sup", "Hey :D", "hey", "Me?", "yes?"]],
+          [[/^(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(^\/sayit)/i], ["David's an idiot"]],
           [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore"]],
@@ -405,6 +406,25 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
 
     return sendReply({text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")});
+  }
+
+  function hug(msg, sendReply) {
+    var match = matches(/^\/(hug\s*.*)/i, msg);
+    if (!match) return;
+
+    var arr = match.trim().toLowerCase();
+    var list = arr.split(/\s+/);
+    if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+
+    var name = list[1];
+    if(name === "me") return sendReply({text: currentUsername + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+
+    if(anonymousUsers[name]) {
+      api.sendMessage(getAnonymous(currentUserId) + " just hugged you.", anonymousUsers[name]);
+      return sendReply({text: name + " was given a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+    }
+
+    return sendReply({text: capitalize(name) + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
   }
 
   function weekendText(msg, sendReply) {
@@ -476,7 +496,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function ping(msg, sendReply) {
-    var match = matches(/^\/ping$/i, msg);
+    var match = matches(/^\/(ping)$/i, msg);
     if (!match) return;
 
     return sendReply({text: "pong"});
