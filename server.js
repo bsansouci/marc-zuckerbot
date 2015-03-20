@@ -287,7 +287,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
     name = name.toLowerCase();
 
-    var message = words[1].trim();
+    var message = words.slice(1).join(':').trim();
 
     var anonymousName = getAnonymous(currentUserId);
     var num = 1;
