@@ -360,7 +360,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           [[/^(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(^\/sayit)/i], ["David's an idiot"]],
-          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
+          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /hug name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
           [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
           [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too " + currentUsername + "."]]
       ];
@@ -676,7 +676,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       return sendReply({text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
     }
 
-    return sendReply({text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name \n /list add list-name new-element"});
+    return sendReply({text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name\n /list delete list-name item-number\n /list add list-name new-element"});
   }
 
   function topScore(msg, sendReply) {
