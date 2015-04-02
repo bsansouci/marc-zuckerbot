@@ -136,7 +136,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(!currentChat.scores) currentChat.scores = {};
     if(!currentChat.reminders) currentChat.reminders = [];
     if(!users[userId]) users[userId] = {};
-
+    console.log(message, username, thread_id, userId, otherUsernames, otherIds, currentChat);
     if (!currentChat.existingChat){
       currentChat.existingChat = true;
       api.sendMessage("Hey I'm a chatbot and here to help. Type '/help' for some useful commands!", thread_id);
