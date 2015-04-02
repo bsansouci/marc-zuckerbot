@@ -139,7 +139,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     if (!currentChat.existingChat){
       currentChat.existingChat = true;
-      api.sendMessage("Hey, type '/help' for some useful commands!", thread_id);
+      api.sendMessage("Hey I'm a chatbot and here to help. Type '/help' for some useful commands!", thread_id);
     }
     currentThreadId = thread_id;
     currentUserId = userId;
@@ -208,14 +208,14 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var match = matches(/^\/(.*)/i, msg);
     if(!match) return;
 
-    var toSend = match.trim();
+    var toSend = match.trim().replace(/\s+/g, "+");
     if(toSend === "stop-game") {
       currentOtherIds.map(function(v) {
         if(users[v]) delete users[v][currentThreadId];
       });
       // return sendReply({text: "Game stopped"});
     }
-    _get(ericURL + [toSend, currentThreadId, currentUserId].join("+"), function(err, res, html) {
+    _get(ericURL + [currentThreadId, currentUserId, toSend].join("+"), function(err, res, html) {
       var arr = html.split("@@");
       arr = arr.map(function(v) {
         return currentOtherIds.reduce(function(acc, u) {
@@ -223,7 +223,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           return acc.replace(u, currentOtherUsernames[currentOtherIds.indexOf(u)]);
         }, v);
       });
-      if(arr.length === 1) {
+      if(arr.length === 1 && arr[0].length > 0) {
         return sendReply({text: arr[0]});
       }
       sendReply({text: arr[0]});
@@ -231,6 +231,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       for (var i = 0; i < characters.length; i += 2) {
         var playerId = parseInt(characters[i]);
         var char = characters[i+1];
+
         api.sendMessage(currentOtherUsernames[currentOtherIds.indexOf(playerId)] + char, playerId, function(err) {
           if(err) throw err;
         });
@@ -359,7 +360,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           [[/^(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
           [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
           [[/(^\/sayit)/i], ["David's an idiot"]],
-          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore"]],
+          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /sayit\n- /xkcd keyword\n- name++\n- /score\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
           [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
           [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too " + currentUsername + "."]]
       ];
