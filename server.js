@@ -398,6 +398,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var match = matches(/( |^)(birthday)( |$)/i, msg);
     if (!match) return;
 
+
     var today = new Date();
     var dd = today.getDate();
     var mm = today.getMonth();
