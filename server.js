@@ -66,7 +66,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame],
+    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
     'in-game': [pipeToEric],
     'ignored': [ignore]
   };
@@ -362,7 +362,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
           [[/(^\/sayit)/i], ["David's an idiot"]],
           [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /hug name\n- /sayit\n- /xkcd keyword\n- name++\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
           [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
-          [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too " + currentUsername + "."]]
+          [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too, " + currentUsername + "."]]
       ];
       for (var i = 0; i < possibilities.length; i++) {
           var possibleMatches = possibilities[i][0];
@@ -388,6 +388,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
               }
           }
       }
+  }
+
+  function sendBirthday(msg, sendReply) {
+    var match = matches(/( |^)(birthday)( |$)/i, msg);
+    if (!match) return;
+
+    var today = new Date();
+    var dd = today.getDate();
+    var mm = today.getMonth();
+    if (dd == 29 && mm == 3){
+      sendSplitMessage(currentThreadId, "HAPPY BIRTHDAY MAUDE", 657501937666397);
+    }
   }
 
   function slap(msg, sendReply) {
@@ -435,6 +447,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var today = new Date();
     return sendReply({text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")});
   }
+
 
   function addScore(msg, sendReply) {
     var match = matches(/^(.+)\+\+/i, msg);
@@ -695,9 +708,28 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     return sendReply({text: "Top Score: " + maxName+ ", with "+max+" points."});
   }
 
+  function sendSplit(msg) {
+    var match = matches(/^\/sendsplit\s+(.+)$/i, msg);
+    if (!match) return;
+
+    sendSplitMessage(currentThreadId, match);
+  }
+
   function matches(regex, msg) {
     var match = regex.exec(msg) || [];
     return match[1];
+  }
+
+  function sendSplitMessage(targetId, message, stickerId){
+    if (message.length === 0){
+      if (typeof stickerId !== 'undefined'){
+        api.sendSticker(stickerId, targetId);
+      }
+    } else {
+      api.sendMessage(message[0], targetId, function(err, obj){
+        sendSplitMessage(targetId, message.substring(1), stickerId);
+      });
+    }
   }
 
   function hashUsername(name) {
