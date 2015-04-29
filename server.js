@@ -4,6 +4,7 @@ var Firebase = require("firebase");
 var shortId = require('shortid');
 var phonetic = require("phonetic");
 var request = require("request");
+var fb = require("fb");
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -106,6 +107,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       });
     }
   }
+
+  // Set the graph api token
+  fb.setAccessToken(api.getAccessToken());
 
   // Main method
   api.listen(function(err, message, stopListening) {
@@ -397,9 +401,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var today = new Date();
     var dd = today.getDate();
     var mm = today.getMonth();
-    if (dd == 29 && mm == 3){
-      sendSplitMessage(currentThreadId, "HAPPY BIRTHDAY MAUDE", 657501937666397);
-    }
+
+    var stickers = [144884805685786, 657501937666397, 401768673292031, 162333030618222, 553453074782034, 320763728117773, 201013703381897];
+
+    api.getUserInfo(currentOtherIds, function(err, ret) {
+      if(err) return console.error(err);
+
+      for(var prop in ret) {
+        if(ret.hasOwnProperty(prop) && ret[prop].is_birthday) {
+          sendSplitMessage(currentThreadId, "HAPPY BIRTHDAY " + ret[prop].firstName.toUpperCase(), randFrom(stickers));
+        }
+      }
+    });
   }
 
   function slap(msg, sendReply) {
@@ -720,14 +733,20 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     return match[1];
   }
 
-  function sendSplitMessage(targetId, message, stickerId){
+  function sendSplitMessage(targetId, message, stickerId, callback){
     if (message.length === 0){
       if (typeof stickerId !== 'undefined'){
-        api.sendSticker(stickerId, targetId);
+        api.sendSticker(stickerId, targetId, callback);
+      } else {
+        callback();
       }
+    } else if (message.length >= 40) {
+      return;
     } else {
-      api.sendMessage(message[0], targetId, function(err, obj){
-        sendSplitMessage(targetId, message.substring(1), stickerId);
+      api.sendMessage(message[0], targetId, function(err, obj) {
+        setTimeout(function() {
+          sendSplitMessage(targetId, message.substring(1), stickerId);
+        }, 200);
       });
     }
   }
