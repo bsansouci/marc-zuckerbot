@@ -4,7 +4,6 @@ var Firebase = require("firebase");
 var shortId = require('shortid');
 var phonetic = require("phonetic");
 var request = require("request");
-var fb = require("fb");
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -26,7 +25,7 @@ if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FI
 var ericURL = "http://localhost:34567/?data=";
 if(process.env.ERIC_URL) ericURL = process.env.ERIC_URL;
 
-
+var MARC_ID = 100009069356507;
 var db = new Firebase(process.env.MARC_ZUCKERBOT_FIREBASE);
 var chatsDB = db.child("chats");
 var listsDB = db.child("lists");
@@ -108,9 +107,6 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
   }
 
-  // Set the graph api token
-  fb.setAccessToken(api.getAccessToken());
-
   // Main method
   api.listen(function(err, message, stopListening) {
     if(err) return console.error(err);
@@ -156,13 +152,14 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     }
 
     // Remove marc from this list
-    currentOtherIds = otherIds.filter(function(v) {return v !== 100009069356507;});
+    currentOtherIds = otherIds.filter(function(v) {return v !== MARC_ID;});
 
     var availableCommands = allCommands.default;
-    if(users[currentUserId] && users[currentUserId][thread_id]) {
+    // if we have data for the user, and he has talked in this current chat
+    // and his state isn't null, then we use the appropriate set of commands
+    // for the given state
+    if(users[currentUserId] && users[currentUserId][thread_id] && users[currentUserId][thread_id].state) {
       availableCommands = allCommands[users[currentUserId][thread_id].state];
-    } else if (users[currentUserId] && users[currentUserId].globalState) {
-      availableCommands = allCommands[users[currentUserId].globalState];
     }
 
     for (var i = 0; i < availableCommands.length; i++) {
@@ -183,15 +180,15 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var text = match.trim();
     if(text === "ignore") {
-      if(users[currentUserId] && users[currentUserId].globalState === "ignored") {
+      if(users[currentUserId] && users[currentUserId][currentThreadId] && users[currentUserId][currentThreadId].state === "ignored") {
         return sendReply({text: "I'm already ignoring you. If you want me to stop ignoring you please do /unignore."});
       }
       users[currentUserId] = users[currentUserId] || {};
-      users[currentUserId].globalState = "ignored";
+      users[currentUserId][currentThreadId].state = "ignored";
       return sendReply({text: "Messages from you will now be ignored. Do /unignore to stop being ignored."});
     } else {
-      if(users[currentUserId] && users[currentUserId].globalState === "ignored") {
-        delete users[currentUserId].globalState;
+      if(users[currentUserId] && users[currentUserId][currentThreadId].state === "ignored") {
+        delete users[currentUserId][currentThreadId];
         return sendReply({text: "Oh hey " + currentUsername + " you're there!"});
       }
 
@@ -212,32 +209,50 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var match = matches(/^\/(.*)/i, msg);
     if(!match) return;
 
-    var toSend = match.trim().replace(/\s+/g, "+");
-    if(toSend === "stop-game") {
+    var commandToSend = match.trim().replace(/\s+/g, "+");
+    if(commandToSend === "stop-game") {
       currentOtherIds.map(function(v) {
-        if(users[v]) delete users[v][currentThreadId];
+        if(users[v] && users[v][currentThreadId]) users[v][currentThreadId].state = null;
+        if(users[v] && users[v][v]) users[v][v].state = null;
       });
       // return sendReply({text: "Game stopped"});
     }
-    _get(ericURL + [currentThreadId, currentUserId, toSend].join("+"), function(err, res, html) {
+    var cachedCurrentOtherIds = currentOtherIds;
+    var cachedCurrentOtherUsernames = currentOtherUsernames;
+    _get(ericURL + [currentThreadId, currentUserId, commandToSend].join("+"), function(err, res, html) {
+      if(!html) return console.error("No html from eric?");
       var arr = html.split("@@");
       arr = arr.map(function(v) {
-        return currentOtherIds.reduce(function(acc, u) {
-          console.log(acc, u);
-          return acc.replace(u, currentOtherUsernames[currentOtherIds.indexOf(u)]);
+        return cachedCurrentOtherIds.reduce(function(acc, u) {
+          return acc.split(u).join(cachedCurrentOtherUsernames[cachedCurrentOtherIds.indexOf(u)]);
         }, v);
       });
       if(arr.length === 1 && arr[0].length > 0) {
         return sendReply({text: arr[0]});
       }
+      // Send the reply into the main thread
       sendReply({text: arr[0]});
+
+      // Send individual replies to private threads
       var characters = arr.slice(1, arr.length);
       for (var i = 0; i < characters.length; i += 2) {
         var playerId = parseInt(characters[i]);
-        var char = characters[i+1];
-
-        api.sendMessage(currentOtherUsernames[currentOtherIds.indexOf(playerId)] + char, playerId, function(err) {
-          if(err) throw err;
+        var message = characters[i+1];
+        if(playerId === MARC_ID) {
+          var splittedMessage = message.split(" ");
+          var action = message[0];
+          var threadId = parseInt(message[1]);
+          if(action === "endgame") {
+            if(users[threadId] && users[threadId][threadId]) users[threadId][threadId].state = null;
+          }
+          console.log("--->", action, threadId);
+          continue;
+        }
+        api.sendMessage(cachedCurrentOtherUsernames[cachedCurrentOtherIds.indexOf(playerId)] + message, playerId, function(err) {
+          if(err) {
+            console.error(err);
+            throw new Error("look above");
+          }
         });
       }
     });
@@ -249,7 +264,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var difficulty = match.trim().split(' ')[1];
 
-    _get(ericURL+ ["start-game", currentThreadId, difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+    _get(ericURL+ [currentThreadId, currentUserId, "start-game", difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
       if(err) return console.error(err);
       if(!html) return console.error("Empty packet....");
 
@@ -261,6 +276,9 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       currentOtherIds.map(function(v) {
         users[v] = users[v] || {};
         users[v][currentThreadId] = {
+          state:"in-game"
+        };
+        users[v][v] = {
           state:"in-game"
         };
       });
