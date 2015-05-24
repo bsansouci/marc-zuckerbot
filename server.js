@@ -202,7 +202,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     return sendReply({text: "Can't reply for now, I'm working on it."});
 
-    if(!users[currentUserId] || !users[currentUserId].preMessage) return sendReply({text: "No previous message to reply to."});
+    //if(!users[currentUserId] || !users[currentUserId].preMessage) return sendReply({text: "No previous message to reply to."});
   }
 
   function pipeToEric(msg, sendReply) {
@@ -643,11 +643,11 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         return sendReply({text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
       }
 
-      // If the delete command wasn't given a number, we assum the user wants
+      // If the delete command wasn't given a number, we assume the user wants
       // to delete the whole list
       if(listName.length > 0) {
         // We check for permissions to delete the whole list
-        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. You created this list in another chat."};
+        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. This list was created in another chat."};
         var id = currentChat.lists[listName].id;
         delete lists[id];
         delete currentChat.lists[listName];
@@ -715,7 +715,15 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
       return sendReply({text: "Usage: /list blame list-name item-number"});
     } else if (currentChat.lists[keyword]) {
-      if(!lists[currentChat.lists[keyword].id].content) {
+      if(!lists[currentChat.lists[keyword].id]) {
+        var id = currentChat.lists[keyword].id;
+        for(var prop in chats) {
+          if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[keyword] && chats[prop].lists[keyword].id === id) {
+            delete chats[prop].lists[keyword];
+          }
+        }
+        return sendReply({text: "Cannot find list with id `"+id+"`.  Attempting to repair."});
+      } else if(!lists[currentChat.lists[keyword].id].content) {
         return sendReply({text: "List '" + keyword + "' is emtpy."});
       }
       return sendReply({text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
