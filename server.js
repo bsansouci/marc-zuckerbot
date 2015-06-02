@@ -22,7 +22,8 @@ setInterval(function() {
 
 if(!process.env.MARC_ZUCKERBOT_FIREBASE) return console.error("MARC_ZUCKERBOT_FIREBASE env variable isn't set!");
 
-var ericURL = "http://localhost:34567/?data=";
+
+var ericURL = "http://192.168.1.101:34567/?data=";
 if(process.env.ERIC_URL) ericURL = process.env.ERIC_URL;
 
 var MARC_ID = 100009069356507;
@@ -165,10 +166,11 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     for (var i = 0; i < availableCommands.length; i++) {
       availableCommands[i](message, function(msg) {
         // Async saving to firebase
-        chatsDB.set(chats);
-        listsDB.set(lists);
-        usersDB.set(users);
-        anonymousUsersDB.set(anonymousUsers);
+
+        // chatsDB.set(chats);
+        // listsDB.set(lists);
+        // usersDB.set(users);
+        // anonymousUsersDB.set(anonymousUsers);
         callback(msg);
       });
     }
@@ -222,7 +224,8 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     _get(ericURL + [currentThreadId, currentUserId, commandToSend].join("+"), function(err, res, html) {
       if(!html) return console.error("No html from eric?");
       var arr = html.split("@@");
-      arr = arr.map(function(v) {
+      arr = arr.map(function(v, i) {
+        if(i % 2 === 1) return v;
         return cachedCurrentOtherIds.reduce(function(acc, u) {
           return acc.split(u).join(cachedCurrentOtherUsernames[cachedCurrentOtherIds.indexOf(u)]);
         }, v);
@@ -238,17 +241,22 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       for (var i = 0; i < characters.length; i += 2) {
         var playerId = parseInt(characters[i]);
         var message = characters[i+1];
-        if(playerId === MARC_ID) {
+        // Check if there's a message sent to zuckerbot
+        // if yes and the message is end, that means the game is done
+        if(characters[i] === 'zuckerbot') {
           var splittedMessage = message.split(" ");
-          var action = message[0];
-          var threadId = parseInt(message[1]);
-          if(action === "endgame") {
-            if(users[threadId] && users[threadId][threadId]) users[threadId][threadId].state = null;
+          var action = splittedMessage[0];
+          var threadId = parseInt(splittedMessage[1]);
+          if(action === "end") {
+            cachedCurrentOtherIds.map(function(v) {
+              users[v][threadId].state = null;
+            });
+            // if(users[threadId] && users[threadId][threadId]) users[threadId][threadId].state = null;
           }
-          console.log("--->", action, threadId);
           continue;
         }
-        api.sendMessage(cachedCurrentOtherUsernames[cachedCurrentOtherIds.indexOf(playerId)] + message, playerId, function(err) {
+        console.log(i, characters, characters[i], playerId, cachedCurrentOtherUsernames[cachedCurrentOtherIds.indexOf(playerId)]);
+        api.sendMessage(message, playerId, function(err) {
           if(err) {
             console.error(err);
             throw new Error("look above");
@@ -263,8 +271,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(!match) return;
 
     var difficulty = match.trim().split(' ')[1];
-
-    _get(ericURL+ [currentThreadId, currentUserId, "start-game", difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
+    _get(ericURL + [currentThreadId, currentUserId, "start-game", difficulty].concat(currentOtherIds).join("+"), function(err, res, html) {
       if(err) return console.error(err);
       if(!html) return console.error("Empty packet....");
 
