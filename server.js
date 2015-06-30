@@ -827,7 +827,11 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 // Main function
 db.once('value', function(snapshot) {
   var data = snapshot.val() || {};
-  login(function(err, api) {
+
+  login({
+    emai: process.env.FB_LOGIN_EMAIL,
+    password: process.env.FB_LOGIN_PASSWORD
+  }, function(err, api) {
     if(err) return console.error(err);
 
     startBot(api, data.chats, data.lists, data.users, data.anonymousUsers);
