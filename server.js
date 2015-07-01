@@ -829,7 +829,7 @@ db.once('value', function(snapshot) {
   var data = snapshot.val() || {};
 
   login({
-    emai: process.env.FB_LOGIN_EMAIL,
+    email: process.env.FB_LOGIN_EMAIL,
     password: process.env.FB_LOGIN_PASSWORD
   }, function(err, api) {
     if(err) return console.error(err);
