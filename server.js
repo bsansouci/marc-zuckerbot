@@ -66,7 +66,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    'default': [addScore, score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
+    'default': [addScore, spank, hashtag, subtractScore,score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
     'in-game': [pipeToEric],
     'ignored': [ignore]
   };
@@ -453,6 +453,36 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     return sendReply({text: capitalize(name) + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")});
   }
 
+  function subtractScore(msg, sendReply) {
+    var match = matches(/^ (.+)\-\-/i, msg):
+    if (!match) return;
+
+    var name = match.trim()toLowerCase();
+
+    name = capitalize(name);
+    if (contains(currentOtherUsernames, name)) {
+      var score = (currentChat.scores[name] ? currentChat.scores[name] : 0) - 1;
+      currentChat.scores[name] = score;
+      return sendReply({text: name + "'s score is now " + score + "."});
+    }
+    return sendReply({text: "Who's " + name + "?"});
+  }
+
+  function spank(msg, sendReply) {
+    var match = matches(/^\/(spank\s*.*)/i, msg);
+    if (!match) return;
+
+    var arr = match.trim().toLowerCase();
+    var list = arr.split(/\s+/);
+    if (list.length === 1) return sendReply({text: currentUsername + " just got spanked." + (Math.random() < 0.5 ? “ So. Hard. ;)”: “”)});
+
+    if (anonymousUsers[name]) {
+      api.sendMessage(getAnonymous(currentUserId) + " just spanked you.", anonymousUsers[name]);
+      return sendReply({text: name + " was told that they got spanked."});
+    }
+    return sendReply({text: capitalize(name) + " just got spanked." + (Math.random() < 0.5 ? “ So. Hard. ;)”: “”)});
+  }
+
   function hug(msg, sendReply) {
     var match = matches(/^\/(hug\s*.*)/i, msg);
     if (!match) return;
@@ -532,6 +562,12 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   function bees(msg, sendReply) {
     if (matches(/( |^)bees( |$)/i, msg)) {
       return sendReply({text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"});
+    }
+  }
+
+  function hashtag(msg, sendReply) {
+    if (matches(/( |^)#[A-Za-z]+/, msg)) {
+      return sendReply({text: "HASHTAG #hashtag"})
     }
   }
 
