@@ -167,10 +167,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       availableCommands[i](message, function(msg) {
         // Async saving to firebase
 
-        // chatsDB.set(chats);
-        // listsDB.set(lists);
-        // usersDB.set(users);
-        // anonymousUsersDB.set(anonymousUsers);
+        chatsDB.set(chats);
+        listsDB.set(lists);
+        usersDB.set(users);
+        anonymousUsersDB.set(anonymousUsers);
         callback(msg);
       });
     }
