@@ -850,7 +850,7 @@ function sendSplitMessage(targetId, message, stickerId, callback){
   if (message.length === 0){
     if (typeof stickerId !== 'undefined'){
       api.sendSticker(stickerId, targetId, callback);
-    } else {
+    } else if (callback) {
       callback();
     }
   } else if (message.length >= 40) {
@@ -858,7 +858,7 @@ function sendSplitMessage(targetId, message, stickerId, callback){
   } else {
     api.sendMessage(message[0], targetId, function(err, obj) {
       setTimeout(function() {
-        sendSplitMessage(targetId, message.substring(1), stickerId);
+        sendSplitMessage(targetId, message.substring(1), stickerId, callback);
       }, 200);
     });
   }
