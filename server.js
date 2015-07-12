@@ -67,7 +67,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    'default': [addScore, spank, hashtag, subtractScore,score, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
+    'default': [addScore, spank, hashtag, subtractScore, score, pickup, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
     'in-game': [pipeToEric],
     'ignored': [ignore]
   };
@@ -129,10 +129,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     // Default chat object or existing one
     // And set the global object
     currentChat = chats[thread_id] = chats[thread_id] || {
-      lists: {},
-      scores: {},
-      existingChat: false
-    };
+        lists: {},
+        scores: {},
+        existingChat: false
+      };
     if(!currentChat.lists) currentChat.lists = {};
     if(!currentChat.scores) currentChat.scores = {};
     if(!currentChat.reminders) currentChat.reminders = [];
@@ -384,43 +384,82 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function staticText(msg, sendReply) {
-      var possibilities = [
-          [[/^(hey )?marc\??$/i],["Sup", "Hey :D", "hey", "Me?", "yes?"]],
-          [[/^(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
-          [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
-          [[/(^\/sayit)/i], ["David's an idiot"]],
-          [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /hug name\n- /sayit\n- /xkcd keyword\n- name++\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
-          [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
-          [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too, " + currentUsername + "."]]
-      ];
-      for (var i = 0; i < possibilities.length; i++) {
-          var possibleMatches = possibilities[i][0];
-          for (var j = 0; j < possibleMatches.length; j++) {
-              var match = possibleMatches[j].exec(msg);
-              if(match && match.length > 0) {
-                  return sendReply({text: randFrom(possibilities[i][1])});
-              }
-          }
+    var possibilities = [
+      [[/^(hey )?marc\??$/i],["Sup", "Hey :D", "hey", "Me?", "yes?"]],
+      [[/^(sup|wassup|what's up|how are you)\??$/i], ["I'm tired", "Not much, you?", "Meh...", "I'm great, how about you?", "What's up with you?", "Nothing much, you?"]],
+      [[/(who made you|who's your creator|where do you come from)/i], ["I'm a long story... About 24h long.", "I'm not too sure", "I never really asked myself this question."]],
+      [[/(^\/sayit)/i], ["David's an idiot"]],
+      [[/^\/(help.*)/],["Try these commands:\n- /list help\n- hey marc\n- /ping\n- /slap\n- /slap name\n- /hug name\n- /sayit\n- /xkcd keyword\n- name++\n- /score name\n- /topscore\n- /send-private firstname lastname: message\n- /remind have fun tomorrow at 2pm\n- /settimezone EDT\n- /ignore\n- /unignore"]],
+      [[/( |^)(chat)?(bot)s?( |$)/i], ["Are you talking about me?", "I am a chat bot.", "Pick me, pick me!"]],
+      [[/<3 (marc)/i], ["I <3 you too!", "Share the <3.", "Hey ;)", "I love you too, " + currentUsername + "."]]
+    ];
+    for (var i = 0; i < possibilities.length; i++) {
+      var possibleMatches = possibilities[i][0];
+      for (var j = 0; j < possibleMatches.length; j++) {
+        var match = possibleMatches[j].exec(msg);
+        if(match && match.length > 0) {
+          return sendReply({text: randFrom(possibilities[i][1])});
+        }
       }
+    }
+  }
+
+  function pickup(msg, sendReply) {
+    var lines = [
+      currentUsername + " is not a photographer, but they can picture themselves and you together.",
+      "Are you religious? Because you're the answer to all " + currentUsername + "'s prayers.",
+      "Are you a camera? Because every time " + currentUsername + " looks at you, they smile.",
+      "Did you sit in a pile of sugar? Cause you have a pretty sweet ass.",
+      "Do you have a Band-Aid? Because " + currentUsername + " just scraped their knee falling for you.",
+      "Do you know what " + currentUsername + "'s shirt is made of? Boyfriend material.",
+      "If " + currentUsername + " were a stop light, they'd turn red every time you passed by, just so they could stare at you a bit longer.",
+      currentUsername + " seems to have lost their phone number. Can they have yours?",
+      "Is your daddy a Baker? Because you've got some nice buns!",
+      "Do you have a map? " + currentUsername + " is getting lost in your eyes.",
+      "Are you " + currentUsername + "'s Appendix? Because they have a funny feeling in their stomach that makes them feel like they should take you out.",
+      "Do you live in a corn field, cause " + currentUsername + " is stalking you.",
+      "You look cold. Want to use " + currentUsername + " as a blanket?",
+      "Is there an airport nearby or is that just " + currentUsername + "'s heart taking off?",
+      "Your body is 65% water and " + currentUsername + " is thirsty.",
+      "Are you a banana? Because " + currentUsername + " finds you a-peeling"
+    ];
+
+    var match = matches(/^\/(pickup\s*.*)/i, msg);
+    if (!match) return;
+
+    var arr = match.trim().toLowerCase();
+    var list = arr.split(/\s+/);
+    if(list.length === 1) return sendReply({text: "Hey, " + currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + "! ;) " + randFrom(lines)});
+
+    var name = list[1];
+    if(name === "me") return sendReply({text: "No."});
+
+    if(anonymousUsers[name]) {
+      api.sendMessage(randFrom(lines));
+      return sendReply({text: name + " was just picked up."});
+    }
+
+    return sendReply({text: "Hey, " + capitalize(name) + "! ;) " + randFrom(lines)});
+
   }
 
   function sendStickerBigSmall(msg, sendReply) {
-      var possibilities = [
-          [[/( |^)(small|big)( |$)/i], [767334526626290, 767334556626287, 767334506626292]]
-      ];
-      for (var i = 0; i < possibilities.length; i++) {
-          var possibleMatches = possibilities[i][0];
-          for (var j = 0; j < possibleMatches.length; j++) {
-              var match = possibleMatches[j].exec(msg);
-              if(match && match.length > 0) {
-                  return sendReply({sticker_id: randFrom(possibilities[i][1])});
-              }
-          }
+    var possibilities = [
+      [[/( |^)(small|big)( |$)/i], [767334526626290, 767334556626287, 767334506626292]]
+    ];
+    for (var i = 0; i < possibilities.length; i++) {
+      var possibleMatches = possibilities[i][0];
+      for (var j = 0; j < possibleMatches.length; j++) {
+        var match = possibleMatches[j].exec(msg);
+        if(match && match.length > 0) {
+          return sendReply({sticker_id: randFrom(possibilities[i][1])});
+        }
       }
+    }
   }
 
   function sendBirthday(msg, sendReply) {
-    var match = matches(/( |^)(birthday)( |$)/i, msg);
+    var match = matches(/\b(birthday)\b/i, msg);
     if (!match) return;
 
 
@@ -432,6 +471,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     api.getUserInfo(currentOtherIds, function(err, ret) {
       if(err) return console.error(err);
+
 
       for(var prop in ret) {
         if(ret.hasOwnProperty(prop) && ret[prop].is_birthday) {
@@ -461,10 +501,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function subtractScore(msg, sendReply) {
-    var match = matches(/^ (.+)\-\-/i, msg);
+    var match = matches(/^(.+)\-\-/i, msg);
     if (!match) return;
 
-    var name = match.trim()toLowerCase();
+    var name = match.trim().toLowerCase();
 
     name = capitalize(name);
     if (contains(currentOtherUsernames, name)) {
@@ -481,383 +521,386 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var arr = match.trim().toLowerCase();
     var list = arr.split(/\s+/);
-    if (list.length === 1) return sendReply({text: currentUsername + " just got spanked." + (Math.random() < 0.5 ? “ So. Hard. ;)”: “”)});
+    if (list.length === 1) return sendReply({text: currentUsername + " just got spanked." + (Math.random() > 0.5 ? " So. Hard.": "")});
 
     if (anonymousUsers[name]) {
       api.sendMessage(getAnonymous(currentUserId) + " just spanked you.", anonymousUsers[name]);
       return sendReply({text: name + " was told that they got spanked."});
     }
-    return sendReply({text: capitalize(name) + " just got spanked." + (Math.random() < 0.5 ? “ So. Hard. ;)”: “”)});
+    return sendReply({text: capitalize(name) + " just got spanked." + (Math.random() > 0.5 ? " So. Hard.": "")});
   }
 
-  function hug(msg, sendReply) {
-    var match = matches(/^\/(hug\s*.*)/i, msg);
-    if (!match) return;
+function hug(msg, sendReply) {
+  var match = matches(/^\/(hug\s*.*)/i, msg);
+  if (!match) return;
 
-    var arr = match.trim().toLowerCase();
-    var list = arr.split(/\s+/);
-    if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+  var arr = match.trim().toLowerCase();
+  var list = arr.split(/\s+/);
+  if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
 
-    var name = list[1];
-    if(name === "me") return sendReply({text: currentUsername + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+  var name = list[1];
+  if(name === "me") return sendReply({text: currentUsername + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
 
-    if(anonymousUsers[name]) {
-      api.sendMessage(getAnonymous(currentUserId) + " just hugged you.", anonymousUsers[name]);
-      return sendReply({text: name + " was given a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
-    }
-
-    return sendReply({text: capitalize(name) + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+  if(anonymousUsers[name]) {
+    api.sendMessage(getAnonymous(currentUserId) + " just hugged you.", anonymousUsers[name]);
+    return sendReply({text: name + " was given a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
   }
 
-  function weekendText(msg, sendReply) {
-    var match = matches(/( |^)is it (weekend)\s*\?/i, msg);
-    if (!match) return;
+  return sendReply({text: capitalize(name) + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+}
 
-    var today = new Date();
-    return sendReply({text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")});
+function weekendText(msg, sendReply) {
+  var match = matches(/\b(is it weekend)\s*\?/i, msg);
+  if (!match) return;
+
+  var today = new Date();
+  return sendReply({text: (today.getDay() === 0 || today.getDay() === 6 ? "YES" : "NO")});
+}
+
+
+function addScore(msg, sendReply) {
+  var match = matches(/^(.+)\+\+/i, msg);
+  if (!match) return;
+
+  var name = match.trim().toLowerCase();
+
+  name = capitalize(name);
+  if (name === currentUsername) {
+    return sendReply({text: name + ", you can't upvote yourself -_- "});
+  }
+  if (contains(currentOtherUsernames, name)) {
+    var score = (currentChat.scores[name] ? currentChat.scores[name] : 0) + 1;
+    currentChat.scores[name] = score;
+    return sendReply({text: name + "'s score is now " + score + "."});
   }
 
+  return sendReply({text: "Who's " + name + "?"});
+}
 
-  function addScore(msg, sendReply) {
-    var match = matches(/^(.+)\+\+/i, msg);
-    if (!match) return;
+function salute(msg, sendReply) {
+  var match = matches(/general\s+(\w+)/i, msg);
+  if (!match) return;
 
-    var name = match.trim().toLowerCase();
+  var general = match.trim();
+  return sendReply({text: "*salute* General " + general});
+}
 
-    name = capitalize(name);
-    if (name === currentUsername) {
-      return sendReply({text: name + ", you can't upvote yourself -_- "});
-    }
-    if (contains(currentOtherUsernames, name)) {
-      var score = (currentChat.scores[name] ? currentChat.scores[name] : 0) + 1;
-      currentChat.scores[name] = score;
-      return sendReply({text: name + "'s score is now " + score + "."});
-    }
+function score(msg, sendReply) {
+  var match = matches(/^\/score([\w .\-]*)$/i, msg);
+  if (!match) return;
 
-    return sendReply({text: "Who's " + name + "?"});
-  }
+  var name = match.trim().toLowerCase();
+  if (name.length < 1 || name === "me") name = currentUsername;
 
-  function salute(msg, sendReply) {
-      var match = matches(/general\s+(\w+)/i, msg);
-      if (!match) return;
+  name = capitalize(name);
+  if (!contains(currentOtherUsernames, name)) return sendReply({text: "who?"});
 
-      var general = match.trim();
-      return sendReply({text: "*salute* General " + general});
-  }
-
-  function score(msg, sendReply) {
-    var match = matches(/^\/score([\w .\-]*)$/i, msg);
-    if (!match) return;
-
-    var name = match.trim().toLowerCase();
-    if (name.length < 1 || name === "me") name = currentUsername;
-
-    name = capitalize(name);
-    if (!contains(currentOtherUsernames, name)) return sendReply({text: "who?"});
-
-    var pts = currentChat.scores[name] ? currentChat.scores[name] : 0;
-    return sendReply({text: ("" + name + " has " + pts + " points")});
-  }
+  var pts = currentChat.scores[name] ? currentChat.scores[name] : 0;
+  return sendReply({text: ("" + name + " has " + pts + " points")});
+}
 
   function albert(msg, sendReply) {
-    var match = matches(/^\/albert$/i, msg);
+    var match = matches(/\b(albert)\b/i, msg);
     if (!match) return;
     var k =  "\n         ,---,_          ,\n          _>   `'-.  .--'/\n     .--'` ._      `/   <_\n      >,-' ._'.. ..__ . ' '-.\n   .-'   .'`         `'.     '.\n    >   / >`-.     .-'< \\ , '._\\\n   /    ; '-._>   <_.-' ;  '._>\n   `>  ,/  /___\\ /___\\  \\_  /\n   `.-|(|  \\o_/  \\o_/   |)|`\n       \\;        \\      ;/\n         \\  .-,   )-.  /\n          /`  .'-'.  `\\\n         ;_.-`.___.'-.;\n";
     return sendReply({text: k});
   }
 
   function bees(msg, sendReply) {
-    if (matches(/( |^)bees( |$)/i, msg)) {
+    if (matches(/\b(bees)\b/i, msg)) {
       return sendReply({text: "http://cdn.gifstache.com/2012/7/19/gifstache.com_893_1342731571.gif"});
     }
   }
 
   function hashtag(msg, sendReply) {
-    if (matches(/( |^)#[A-Za-z]+/, msg)) {
-      return sendReply({text: "HASHTAG #hashtag"})
-    }
-  }
-
-  function sexxiBatman(msg, sendReply) {
-    if (matches(/(wanna make some trouble)/i, msg)) {
-      return sendReply({text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"});
-    }
-  }
-
-  function ping(msg, sendReply) {
-    var match = matches(/^\/(ping)$/i, msg);
-    if (!match) return;
-
-    return sendReply({text: "pong"});
-  }
-
-  function xkcdSearch(msg, sendReply) {
-    var match = matches(/^\/xkcd\s+(.+)/i, msg);
-    if (!match) return;
-
-    var search = match.trim().toLowerCase().replace(/ /g, "+");
-    var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
-    return sendReply({text: "Find relevant xkcds here: " + searchUrl});
-  }
-
-  function giphySearch(msg, sendReply) {
-    var data = "";
-    if(msg.indexOf("giphy") > -1) {
-      var strippedString = msg.replace(/^\s+|\s+$/g, '');
-      strippedString = strippedString.replace("giphy", '');
-
-      var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-      var request = new XMLHttpRequest();
-      request.open('GET', 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag='+strippedString, false);
-
-      request.onload = function() {
-        if (request.status >= 200 && request.status < 400){
-          data = JSON.parse(request.responseText).data.image_url;
-          console.log(data);
-          return sendReply({text: data});
-        } else {
-          return sendReply({text: "No gif for this search result."});
-        }
-      };
-
-      request.onerror = function() {
-        console.log('Connection error');
-      };
-
-      request.send(null);
-      console.log("request sent");
-    }
-  }
-
-  function arbitraryLists(msg, sendReply) {
-    var list = matches(/^\/(list\s*.*)/i, msg);
-    if (!list) return;
-
-    list = list.trim();
-    var arr = list.split(/\s+/);
-    if(arr.length === 1) return sendReply({text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
-      return (i + 1) + " - " + v;
-    }).join("\n") : "No existing list.")});
-
-    var keyword = arr[1].toLowerCase();
-    var listName = arr.length > 2 ? arr[2] : "";
-    if(keyword === 'new') {
-      if(currentChat.lists[listName]) {
-        return sendReply({text: "List '" + listName + "' already exists."});
-      }
-      if(listName.length > 0) {
-        var newList = {
-          id: shortId.generate(),
-          name: listName,
-          thread_id: currentThreadId
-        };
-        currentChat.lists[listName] = newList;
-
-        lists[newList.id] = {
-          name: listName,
-          thread_id: currentThreadId,
-          content: []
-        };
-        return sendReply({text: "List '" + listName + "' created."});
-      }
-    } else if (keyword === 'delete') {
-      if (!currentChat.lists[listName]) {
-        return sendReply({text: "No list of name '"+listName+"' exists."});
-      }
-
-      if(!lists[currentChat.lists[listName].id].content) {
-        return sendReply({text: "List '" + listName + "' is emtpy."});
-      }
-
-      // If the delete command was given a number
-      if(arr.length > 3) {
-        var num = parseInt(arr[3]);
-        if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
-
-        if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
-          return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
-        }
-
-        // Remove the item at index num - 1 (0 indexed here, 1 indexed for
-        // users)
-        lists[currentChat.lists[listName].id].content.splice(num - 1, 1);
-
-        // We then print the modified list
-        return sendReply({text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
-      }
-
-      // If the delete command wasn't given a number, we assume the user wants
-      // to delete the whole list
-      if(listName.length > 0) {
-        // We check for permissions to delete the whole list
-        if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. This list was created in another chat."};
-        var id = currentChat.lists[listName].id;
-        delete lists[id];
-        delete currentChat.lists[listName];
-
-        // Now we need to iterate through all the chats and remove that list
-        // from any chat that has it
-
-        for(var prop in chats) {
-          if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[listName] && chats[prop].lists[listName].id === id) {
-            delete chats[prop].lists[listName];
-          }
-        }
-        return sendReply({text: "List '" + listName + "' deleted."});
-      }
-    } else if (keyword === 'add') {
-      if(listName.length > 0 && arr.length > 3) {
-        if (!currentChat.lists[listName]) {
-          return sendReply({text: "No list of name '"+listName+"' exists."});
-        }
-        if(!lists[currentChat.lists[listName].id].content) {
-          lists[currentChat.lists[listName].id].content = [];
-        }
-        var item = {
-          data: arr.slice(3).join(' '),
-          creator: currentUsername
-        };
-        lists[currentChat.lists[listName].id].content.push(item);
-        return sendReply({text: "Added '" + arr.slice(3).join(' ') + "' to " + listName + "."});
-      }
-    } else if(keyword === 'import') {
-      var id = listName;
-
-      if (!lists[id]) {
-        return sendReply({text: id+" isn't a valid list ID."});
-      }
-
-      currentChat.lists[lists[id].name] = {
-        id: id,
-        name: lists[id].name,
-        thread_id: lists[id].thread_id
-      };
-
-      return sendReply({text: "List '" + lists[id].name +"' added to current thread."});
-    } else if(keyword === 'share') {
-      if (!currentChat.lists[listName]) {
-        return sendReply({text: "No list of name '"+listName+"' exists."});
-      }
-
-      return sendReply({text: "Paste this into another chat to import the list '"+listName+"':\n/list import " + currentChat.lists[listName].id});
-    } else if(keyword === 'blame') {
-      if (!currentChat.lists[listName]) {
-        return sendReply({text: "No list of name '"+listName+"' exists."});
-      }
-      if(arr.length > 3) {
-        var num = parseInt(arr[3]);
-        if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
-
-        if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
-          return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
-        }
-
-        var item = lists[currentChat.lists[listName].id].content[num - 1];
-        return sendReply({text: "Item " + num + " was added by " + item.creator});
-      }
-
-      return sendReply({text: "Usage: /list blame list-name item-number"});
-    } else if (currentChat.lists[keyword]) {
-      if(!lists[currentChat.lists[keyword].id]) {
-        var id = currentChat.lists[keyword].id;
-        for(var prop in chats) {
-          if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[keyword] && chats[prop].lists[keyword].id === id) {
-            delete chats[prop].lists[keyword];
-          }
-        }
-        return sendReply({text: "Cannot find list with id `"+id+"`.  Attempting to repair."});
-      } else if(!lists[currentChat.lists[keyword].id].content) {
-        return sendReply({text: "List '" + keyword + "' is emtpy."});
-      }
-      return sendReply({text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
-    }
-
-    return sendReply({text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name\n /list delete list-name item-number\n /list add list-name new-element"});
-  }
-
-  function topScore(msg, sendReply) {
-    var match = matches(/^\/(topscores?)$/i, msg);
+    var match = matches(/\B#([A-Za-z0-9]+)/, msg);
 
     if (!match) return;
-    var max = -1;
-    var maxName = "";
-    for (var i = 0; i < currentOtherUsernames.length; i++) {
-      var score = currentChat.scores[currentOtherUsernames[i]] ? currentChat.scores[currentOtherUsernames[i]] : 0;
-      if (score > max) {
-        max = score;
-        maxName = currentOtherUsernames[i];
-      }
-    }
-    return sendReply({text: "Top Score: " + maxName+ ", with "+max+" points."});
+
+    var match = match.trim();
+    return sendReply({text: "Hashbrown " + match});
   }
 
-  function sendSplit(msg) {
-    var match = matches(/^\/sendsplit\s+(.+)$/i, msg);
-    if (!match) return;
-
-    sendSplitMessage(currentThreadId, match);
+function sexxiBatman(msg, sendReply) {
+  if (matches(/(wanna make some trouble)/i, msg)) {
+    return sendReply({text: "http://99gifs.com/-img/514e8830afa96f09940128f8.gif"});
   }
+}
 
-  function matches(regex, msg) {
-    var match = regex.exec(msg) || [];
-    return match[1];
-  }
+function ping(msg, sendReply) {
+  var match = matches(/^\/(ping)$/i, msg);
+  if (!match) return;
 
-  function sendSplitMessage(targetId, message, stickerId, callback){
-    if (message.length === 0){
-      if (typeof stickerId !== 'undefined'){
-        api.sendSticker(stickerId, targetId, callback);
+  return sendReply({text: "pong"});
+}
+
+function xkcdSearch(msg, sendReply) {
+  var match = matches(/^\/xkcd\s+(.+)/i, msg);
+  if (!match) return;
+
+  var search = match.trim().toLowerCase().replace(/ /g, "+");
+  var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
+  return sendReply({text: "Find relevant xkcds here: " + searchUrl});
+}
+
+function giphySearch(msg, sendReply) {
+  var data = "";
+  if(msg.indexOf("giphy") > -1) {
+    var strippedString = msg.replace(/^\s+|\s+$/g, '');
+    strippedString = strippedString.replace("giphy", '');
+
+    var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+    var request = new XMLHttpRequest();
+    request.open('GET', 'http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag='+strippedString, false);
+
+    request.onload = function() {
+      if (request.status >= 200 && request.status < 400){
+        data = JSON.parse(request.responseText).data.image_url;
+        console.log(data);
+        return sendReply({text: data});
       } else {
-        callback();
+        return sendReply({text: "No gif for this search result."});
       }
-    } else if (message.length >= 40) {
-      return;
-    } else {
-      api.sendMessage(message[0], targetId, function(err, obj) {
-        setTimeout(function() {
-          sendSplitMessage(targetId, message.substring(1), stickerId);
-        }, 200);
-      });
+    };
+
+    request.onerror = function() {
+      console.log('Connection error');
+    };
+
+    request.send(null);
+    console.log("request sent");
+  }
+}
+
+function arbitraryLists(msg, sendReply) {
+  var list = matches(/^\/(list\s*.*)/i, msg);
+  if (!list) return;
+
+  list = list.trim();
+  var arr = list.split(/\s+/);
+  if(arr.length === 1) return sendReply({text: (Object.keys(currentChat.lists).length > 0 ? "Existing Lists: \n" + Object.keys(currentChat.lists).map(function(v, i) {
+    return (i + 1) + " - " + v;
+  }).join("\n") : "No existing list.")});
+
+  var keyword = arr[1].toLowerCase();
+  var listName = arr.length > 2 ? arr[2] : "";
+  if(keyword === 'new') {
+    if(currentChat.lists[listName]) {
+      return sendReply({text: "List '" + listName + "' already exists."});
+    }
+    if(listName.length > 0) {
+      var newList = {
+        id: shortId.generate(),
+        name: listName,
+        thread_id: currentThreadId
+      };
+      currentChat.lists[listName] = newList;
+
+      lists[newList.id] = {
+        name: listName,
+        thread_id: currentThreadId,
+        content: []
+      };
+      return sendReply({text: "List '" + listName + "' created."});
+    }
+  } else if (keyword === 'delete') {
+    if (!currentChat.lists[listName]) {
+      return sendReply({text: "No list of name '"+listName+"' exists."});
+    }
+
+    if(!lists[currentChat.lists[listName].id].content) {
+      return sendReply({text: "List '" + listName + "' is emtpy."});
+    }
+
+    // If the delete command was given a number
+    if(arr.length > 3) {
+      var num = parseInt(arr[3]);
+      if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
+
+      if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
+        return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
+      }
+
+      // Remove the item at index num - 1 (0 indexed here, 1 indexed for
+      // users)
+      lists[currentChat.lists[listName].id].content.splice(num - 1, 1);
+
+      // We then print the modified list
+      return sendReply({text: listName + ": \n" + lists[currentChat.lists[listName].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
+    }
+
+    // If the delete command wasn't given a number, we assume the user wants
+    // to delete the whole list
+    if(listName.length > 0) {
+      // We check for permissions to delete the whole list
+      if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. This list was created in another chat."};
+      var id = currentChat.lists[listName].id;
+      delete lists[id];
+      delete currentChat.lists[listName];
+
+      // Now we need to iterate through all the chats and remove that list
+      // from any chat that has it
+
+      for(var prop in chats) {
+        if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[listName] && chats[prop].lists[listName].id === id) {
+          delete chats[prop].lists[listName];
+        }
+      }
+      return sendReply({text: "List '" + listName + "' deleted."});
+    }
+  } else if (keyword === 'add') {
+    if(listName.length > 0 && arr.length > 3) {
+      if (!currentChat.lists[listName]) {
+        return sendReply({text: "No list of name '"+listName+"' exists."});
+      }
+      if(!lists[currentChat.lists[listName].id].content) {
+        lists[currentChat.lists[listName].id].content = [];
+      }
+      var item = {
+        data: arr.slice(3).join(' '),
+        creator: currentUsername
+      };
+      lists[currentChat.lists[listName].id].content.push(item);
+      return sendReply({text: "Added '" + arr.slice(3).join(' ') + "' to " + listName + "."});
+    }
+  } else if(keyword === 'import') {
+    var id = listName;
+
+    if (!lists[id]) {
+      return sendReply({text: id+" isn't a valid list ID."});
+    }
+
+    currentChat.lists[lists[id].name] = {
+      id: id,
+      name: lists[id].name,
+      thread_id: lists[id].thread_id
+    };
+
+    return sendReply({text: "List '" + lists[id].name +"' added to current thread."});
+  } else if(keyword === 'share') {
+    if (!currentChat.lists[listName]) {
+      return sendReply({text: "No list of name '"+listName+"' exists."});
+    }
+
+    return sendReply({text: "Paste this into another chat to import the list '"+listName+"':\n/list import " + currentChat.lists[listName].id});
+  } else if(keyword === 'blame') {
+    if (!currentChat.lists[listName]) {
+      return sendReply({text: "No list of name '"+listName+"' exists."});
+    }
+    if(arr.length > 3) {
+      var num = parseInt(arr[3]);
+      if(isNaN(num)) return sendReply({text: num + " isn't an an item number in the list " + listName + "."});
+
+      if(num - 1 >= lists[currentChat.lists[listName].id].content.length || num - 1 < 0) {
+        return sendReply({text: "Item " + num + " in list '" + listName + "' doesn't exist."});
+      }
+
+      var item = lists[currentChat.lists[listName].id].content[num - 1];
+      return sendReply({text: "Item " + num + " was added by " + item.creator});
+    }
+
+    return sendReply({text: "Usage: /list blame list-name item-number"});
+  } else if (currentChat.lists[keyword]) {
+    if(!lists[currentChat.lists[keyword].id]) {
+      var id = currentChat.lists[keyword].id;
+      for(var prop in chats) {
+        if(chats.hasOwnProperty(prop) && chats[prop].lists && chats[prop].lists[keyword] && chats[prop].lists[keyword].id === id) {
+          delete chats[prop].lists[keyword];
+        }
+      }
+      return sendReply({text: "Cannot find list with id `"+id+"`.  Attempting to repair."});
+    } else if(!lists[currentChat.lists[keyword].id].content) {
+      return sendReply({text: "List '" + keyword + "' is emtpy."});
+    }
+    return sendReply({text: keyword + ": \n" + lists[currentChat.lists[keyword].id].content.map(function(v, i) {return (i + 1) + " - " + v.data;}).join("\n")});
+  }
+
+  return sendReply({text: "Usage:\n /list \n /list list-name\n /list new list-name \n /list delete list-name\n /list delete list-name item-number\n /list add list-name new-element"});
+}
+
+function topScore(msg, sendReply) {
+  var match = matches(/^\/(topscores?)$/i, msg);
+
+  if (!match) return;
+  var max = -1;
+  var maxName = "";
+  for (var i = 0; i < currentOtherUsernames.length; i++) {
+    var score = currentChat.scores[currentOtherUsernames[i]] ? currentChat.scores[currentOtherUsernames[i]] : 0;
+    if (score > max) {
+      max = score;
+      maxName = currentOtherUsernames[i];
     }
   }
+  return sendReply({text: "Top Score: " + maxName+ ", with "+max+" points."});
+}
 
-  function hashUsername(name) {
-    var arr = name.split('').map(function(v) {return v.charCodeAt(0);});
-    arr[0] = (arr[0] + arr[arr[1] % arr.length]) % 26 + 97;
-    for (var i = 1; i < arr.length; i++) {
-      arr[i] = (arr[i] + arr[i - 1] % arr.length) % 26 + 97;
+function sendSplit(msg) {
+  var match = matches(/^\/sendsplit\s+(.+)$/i, msg);
+  if (!match) return;
+
+  sendSplitMessage(currentThreadId, match);
+}
+
+function matches(regex, msg) {
+  var match = regex.exec(msg) || [];
+  return match[1];
+}
+
+function sendSplitMessage(targetId, message, stickerId, callback){
+  if (message.length === 0){
+    if (typeof stickerId !== 'undefined'){
+      api.sendSticker(stickerId, targetId, callback);
+    } else if (callback) {
+      callback();
     }
+  } else if (message.length >= 40) {
+    return;
+  } else {
+    api.sendMessage(message[0], targetId, function(err, obj) {
+      setTimeout(function() {
+        sendSplitMessage(targetId, message.substring(1), stickerId, callback);
+      }, 200);
+    });
+  }
+}
 
-    return arr.reduce(function(acc, val) {
-      acc += String.fromCharCode(val);
-      return acc;
-    }, "");
+function hashUsername(name) {
+  var arr = name.split('').map(function(v) {return v.charCodeAt(0);});
+  arr[0] = (arr[0] + arr[arr[1] % arr.length]) % 26 + 97;
+  for (var i = 1; i < arr.length; i++) {
+    arr[i] = (arr[i] + arr[i - 1] % arr.length) % 26 + 97;
   }
 
-  function capitalize(name) {
-    return name.charAt(0).toUpperCase() + name.slice(1);
-  }
+  return arr.reduce(function(acc, val) {
+    acc += String.fromCharCode(val);
+    return acc;
+  }, "");
+}
 
-  function randFrom(arr) {
-    return arr[~~(arr.length * Math.random())];
-  }
+function capitalize(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
 
-  function replaceAll(find, replace, str) {
-    return str.replace(new RegExp(find, 'g'), replace);
-  }
+function randFrom(arr) {
+  return arr[~~(arr.length * Math.random())];
+}
 
-  function contains(array, obj) {
-    for (var i = array.length - 1; i >= 0; i--) {
-      if (array[i] === obj) return true;
-    }
-    return false;
-  }
+function replaceAll(find, replace, str) {
+  return str.replace(new RegExp(find, 'g'), replace);
+}
 
-  function getAnonymous(id) {
-    return phonetic.generate({seed: id}).toLowerCase();
+function contains(array, obj) {
+  for (var i = array.length - 1; i >= 0; i--) {
+    if (array[i] === obj) return true;
   }
+  return false;
+}
 
-  var timezonesOffsets = {"A":60,"ACDT":630,"ACST":570,"ADT":-180,"AEDT":660,"AEST":600,"AFT":270,"AKDT":-480,"AKST":-540,"ALMT":360,"AMST":-180,"AMT":-240,"ANAST":720,"ANAT":720,"AQTT":300,"ART":-180,"AST":-240,"AWDT":540,"AWST":480,"AZOST":0,"AZOT":-60,"AZST":300,"AZT":240,"B":120,"BNT":480,"BOT":-240,"BRST":-120,"BRT":-180,"BST":60,"BTT":360,"C":180,"CAST":480,"CAT":120,"CCT":390,"CDT":-300,"CEST":120,"CET":60,"CHADT":825,"CHAST":765,"CKT":-600,"CLST":-180,"CLT":-240,"COT":-300,"CST":-360,"CVT":-60,"CXT":420,"ChST":600,"D":240,"DAVT":420,"E":300,"EASST":-300,"EAST":-360,"EAT":180,"ECT":-300,"EDT":-240,"EEST":180,"EET":120,"EGST":0,"EGT":-60,"EST":-300,"ET":-300,"F":360,"FJST":780,"FJT":720,"FKST":-180,"FKT":-240,"FNT":-120,"G":420,"GALT":-360,"GAMT":-540,"GET":240,"GFT":-180,"GILT":720,"GMT":0,"GST":240,"GYT":-240,"H":480,"HAA":-180,"HAC":-300,"HADT":-540,"HAE":-240,"HAP":-420,"HAR":-360,"HAST":-600,"HAT":-90,"HAY":-480,"HKT":480,"HLV":-210,"HNA":-240,"HNC":-360,"HNE":-300,"HNP":-480,"HNR":-420,"HNT":-150,"HNY":-540,"HOVT":420,"I":540,"ICT":420,"IDT":180,"IOT":360,"IRDT":270,"IRKST":540,"IRKT":540,"IRST":210,"IST":60,"JST":540,"K":600,"KGT":360,"KRAST":480,"KRAT":480,"KST":540,"KUYT":240,"L":660,"LHDT":660,"LHST":630,"LINT":840,"M":720,"MAGST":720,"MAGT":720,"MART":-510,"MAWT":300,"MDT":-360,"MESZ":120,"MEZ":60,"MHT":720,"MMT":390,"MSD":240,"MSK":240,"MST":-420,"MUT":240,"MVT":300,"MYT":480,"N":-60,"NCT":660,"NDT":-90,"NFT":690,"NOVST":420,"NOVT":360,"NPT":345,"NST":-150,"NUT":-660,"NZDT":780,"NZST":720,"O":-120,"OMSST":420,"OMST":420,"P":-180,"PDT":-420,"PET":-300,"PETST":720,"PETT":720,"PGT":600,"PHOT":780,"PHT":480,"PKT":300,"PMDT":-120,"PMST":-180,"PONT":660,"PST":-480,"PT":-480,"PWT":540,"PYST":-180,"PYT":-240,"Q":-240,"R":-300,"RET":240,"S":-360,"SAMT":240,"SAST":120,"SBT":660,"SCT":240,"SGT":480,"SRT":-180,"SST":-660,"T":-420,"TAHT":-600,"TFT":300,"TJT":300,"TKT":780,"TLT":540,"TMT":300,"TVT":720,"U":-480,"ULAT":480,"UTC":0,"UYST":-120,"UYT":-180,"UZT":300,"V":-540,"VET":-210,"VLAST":660,"VLAT":660,"VUT":660,"W":-600,"WAST":120,"WAT":60,"WEST":60,"WESZ":60,"WET":0,"WEZ":0,"WFT":720,"WGST":-120,"WGT":-180,"WIB":420,"WIT":540,"WITA":480,"WST":780,"WT":0,"X":-660,"Y":-720,"YAKST":600,"YAKT":600,"YAPT":600,"YEKST":360,"YEKT":360,"Z":0};
+function getAnonymous(id) {
+  return phonetic.generate({seed: id}).toLowerCase();
+}
+
+var timezonesOffsets = {"A":60,"ACDT":630,"ACST":570,"ADT":-180,"AEDT":660,"AEST":600,"AFT":270,"AKDT":-480,"AKST":-540,"ALMT":360,"AMST":-180,"AMT":-240,"ANAST":720,"ANAT":720,"AQTT":300,"ART":-180,"AST":-240,"AWDT":540,"AWST":480,"AZOST":0,"AZOT":-60,"AZST":300,"AZT":240,"B":120,"BNT":480,"BOT":-240,"BRST":-120,"BRT":-180,"BST":60,"BTT":360,"C":180,"CAST":480,"CAT":120,"CCT":390,"CDT":-300,"CEST":120,"CET":60,"CHADT":825,"CHAST":765,"CKT":-600,"CLST":-180,"CLT":-240,"COT":-300,"CST":-360,"CVT":-60,"CXT":420,"ChST":600,"D":240,"DAVT":420,"E":300,"EASST":-300,"EAST":-360,"EAT":180,"ECT":-300,"EDT":-240,"EEST":180,"EET":120,"EGST":0,"EGT":-60,"EST":-300,"ET":-300,"F":360,"FJST":780,"FJT":720,"FKST":-180,"FKT":-240,"FNT":-120,"G":420,"GALT":-360,"GAMT":-540,"GET":240,"GFT":-180,"GILT":720,"GMT":0,"GST":240,"GYT":-240,"H":480,"HAA":-180,"HAC":-300,"HADT":-540,"HAE":-240,"HAP":-420,"HAR":-360,"HAST":-600,"HAT":-90,"HAY":-480,"HKT":480,"HLV":-210,"HNA":-240,"HNC":-360,"HNE":-300,"HNP":-480,"HNR":-420,"HNT":-150,"HNY":-540,"HOVT":420,"I":540,"ICT":420,"IDT":180,"IOT":360,"IRDT":270,"IRKST":540,"IRKT":540,"IRST":210,"IST":60,"JST":540,"K":600,"KGT":360,"KRAST":480,"KRAT":480,"KST":540,"KUYT":240,"L":660,"LHDT":660,"LHST":630,"LINT":840,"M":720,"MAGST":720,"MAGT":720,"MART":-510,"MAWT":300,"MDT":-360,"MESZ":120,"MEZ":60,"MHT":720,"MMT":390,"MSD":240,"MSK":240,"MST":-420,"MUT":240,"MVT":300,"MYT":480,"N":-60,"NCT":660,"NDT":-90,"NFT":690,"NOVST":420,"NOVT":360,"NPT":345,"NST":-150,"NUT":-660,"NZDT":780,"NZST":720,"O":-120,"OMSST":420,"OMST":420,"P":-180,"PDT":-420,"PET":-300,"PETST":720,"PETT":720,"PGT":600,"PHOT":780,"PHT":480,"PKT":300,"PMDT":-120,"PMST":-180,"PONT":660,"PST":-480,"PT":-480,"PWT":540,"PYST":-180,"PYT":-240,"Q":-240,"R":-300,"RET":240,"S":-360,"SAMT":240,"SAST":120,"SBT":660,"SCT":240,"SGT":480,"SRT":-180,"SST":-660,"T":-420,"TAHT":-600,"TFT":300,"TJT":300,"TKT":780,"TLT":540,"TMT":300,"TVT":720,"U":-480,"ULAT":480,"UTC":0,"UYST":-120,"UYT":-180,"UZT":300,"V":-540,"VET":-210,"VLAST":660,"VLAT":660,"VUT":660,"W":-600,"WAST":120,"WAT":60,"WEST":60,"WESZ":60,"WET":0,"WEZ":0,"WFT":720,"WGST":-120,"WGT":-180,"WIB":420,"WIT":540,"WITA":480,"WST":780,"WT":0,"X":-660,"Y":-720,"YAKST":600,"YAKT":600,"YAPT":600,"YEKST":360,"YEKT":360,"Z":0};
 }
 
 // Main function
