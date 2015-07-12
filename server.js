@@ -521,8 +521,11 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     var arr = match.trim().toLowerCase();
     var list = arr.split(/\s+/);
-    if (list.length === 1) return sendReply({text: currentUsername + " just got spanked." + (Math.random() > 0.5 ? " So. Hard.": "")});
 
+    var name = list[1];
+    if(list.length === 1) return sendReply({text: randFrom(currentOtherUsernames) + " just got spanked." + (Math.random() > 0.5 ? " So. Hard.": "")});
+
+    if (name === "me") return sendReply({text: currentUsername + " just got spanked." + (Math.random() > 0.5 ? " So. Hard.": "")});
     if (anonymousUsers[name]) {
       api.sendMessage(getAnonymous(currentUserId) + " just spanked you.", anonymousUsers[name]);
       return sendReply({text: name + " was told that they got spanked."});
@@ -536,7 +539,7 @@ function hug(msg, sendReply) {
 
   var arr = match.trim().toLowerCase();
   var list = arr.split(/\s+/);
-  if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
+  if(list.length === 1) return sendReply({text: randFrom(currentOtherUsernames) + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
 
   var name = list[1];
   if(name === "me") return sendReply({text: currentUsername + " just got a "+(Math.random() > 0.5 ? "BIG ": "")+"hug."});
