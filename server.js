@@ -461,7 +461,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function subtractScore(msg, sendReply) {
-    var match = matches(/^ (.+)\-\-/i, msg):
+    var match = matches(/^ (.+)\-\-/i, msg);
     if (!match) return;
 
     var name = match.trim()toLowerCase();
