@@ -67,7 +67,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   // If there is no state, the toString() function on an undefined property
   // will return the string undefined. This is going to be our default.
   var allCommands = {
-    'default': [addScore, spank, hashtag, subtractScore, score, pickup, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday],
+    'default': [addScore, spank, hashtag, subtractScore, score, pickup, ping, xkcdSearch, arbitraryLists, slap, hug, topScore, sendStickerBigSmall, reminders, setTimezone, sendPrivate, ignore, staticText, salute, weekendText, sexxiBatman, bees, albert, ericGame, sendSplit, sendBirthday, repeat],
     'in-game': [pipeToEric],
     'ignored': [ignore]
   };
@@ -163,16 +163,18 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       availableCommands = allCommands[users[currentUserId][thread_id].state];
     }
 
-    for (var i = 0; i < availableCommands.length; i++) {
-      availableCommands[i](message, function(msg) {
-        // Async saving to firebase
+    function sendReply(msg) {
+      // Async saving to firebase
+      console.log("Saving to DB");
+      chatsDB.set(chats);
+      listsDB.set(lists);
+      usersDB.set(users);
+      anonymousUsersDB.set(anonymousUsers);
+      callback(msg);
+    }
 
-        chatsDB.set(chats);
-        listsDB.set(lists);
-        usersDB.set(users);
-        anonymousUsersDB.set(anonymousUsers);
-        callback(msg);
-      });
+    for (var i = 0; i < availableCommands.length; i++) {
+      availableCommands[i](message, sendReply);
     }
   }
 
@@ -196,6 +198,16 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
       return sendReply({text: "Sorry I'm not ignoring you. If you want me to, do /ignore."});
     }
+  }
+
+  function repeat(msg, sendReply) {
+    var match = matches(/^\/(repeat .*)/i, msg);
+    if(!match) return;
+
+    var rest = match.trim().split(" ").slice(1);
+    setTimeout(function() {
+      sendReply({text: rest.join(" ")});
+    }, parseInt(rest[0]) || 2000);
   }
 
   function reply(msg, sendReply) {
