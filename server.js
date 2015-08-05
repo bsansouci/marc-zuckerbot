@@ -4,6 +4,7 @@ var Firebase = require("firebase");
 var shortId = require('shortid');
 var phonetic = require("phonetic");
 var request = require("request");
+var cheerio = require("cheerio");
 
 // Little binding to prevent heroku from complaining about port binding
 var http = require('http');
@@ -49,7 +50,7 @@ function _get(url, qs, callback) {
   var op = {
     headers: {
       'Content-Type' : 'application/x-www-form-urlencoded',
-      'Host' : url.replace('https://', '').split("/")[0],
+      'Host' : url.replace('http://', '').split("/")[0],
       'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/600.3.18 (KHTML, like Gecko) Version/8.0.3 Safari/600.3.18',
       'Connection' : 'keep-alive',
     },
@@ -628,7 +629,7 @@ function score(msg, sendReply) {
   }
 
   function hashtag(msg, sendReply) {
-    var match = matches(/\B#([A-Za-z0-9]+)/, msg);
+    var match = matches(/\B#([a-z]+[a-z0-9]*|[a-z0-9]*[a-z]+)/i, msg);
 
     if (!match) return;
 
@@ -655,7 +656,11 @@ function xkcdSearch(msg, sendReply) {
 
   var search = match.trim().toLowerCase().replace(/ /g, "+");
   var searchUrl = "http://derp.co.uk/xkcd/page?q=" + search + "&search=Search";
-  return sendReply({text: "Find relevant xkcds here: " + searchUrl});
+  _get(searchUrl, function(err, res, body) {
+    var $ = cheerio.load(body);
+    var url = $($('table')[1]).find('tr td a').attr('href');
+    sendReply({text: 'http://derp.co.uk/xkcd/' + url });
+  });
 }
 
 function giphySearch(msg, sendReply) {
