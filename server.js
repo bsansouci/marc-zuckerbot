@@ -110,18 +110,20 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   // Main method
-  api.listen(function(err, message, stopListening) {
+  var stopListening = api.listen(function(err, event) {
     if(err) return console.error(err);
 
-    console.log("Received ->", message);
-    read(message.body, message.sender_name.split(' ')[0], message.thread_id, message.sender_id, message.participant_names, message.participant_ids, function(msg) {
-      if(!msg) return;
+    if(event.type === 'message') {
+      console.log("Received ->", event.body);
+      read(event.body, event.senderName.split(' ')[0], event.threadID, event.senderID, event.participantNames, event.participantIDs, function(msg) {
+        if(!msg) return;
 
-      console.log("Sending ->", msg);
-      if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, message.thread_id);
-      else if(msg.sticker_id) api.sendSticker(msg.sticker_id, message.thread_id);
-      else api.markAsRead(message.thread_id);
-    });
+        console.log("Sending ->", msg);
+        if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, event.threadID);
+        else if(msg.stickerID) api.sendMessage({sticker: msg.stickerID}, event.threadID);
+        else api.markAsRead(event.threadID);
+      });
+    }
   });
 
 
@@ -130,10 +132,10 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     // Default chat object or existing one
     // And set the global object
     currentChat = chats[thread_id] = chats[thread_id] || {
-        lists: {},
-        scores: {},
-        existingChat: false
-      };
+      lists: {},
+      scores: {},
+      existingChat: false
+    };
     if(!currentChat.lists) currentChat.lists = {};
     if(!currentChat.scores) currentChat.scores = {};
     if(!currentChat.reminders) currentChat.reminders = [];
@@ -259,12 +261,12 @@ function startBot(api, chats, lists, users, anonymousUsers) {
         if(characters[i] === 'zuckerbot') {
           var splittedMessage = message.split(" ");
           var action = splittedMessage[0];
-          var threadId = parseInt(splittedMessage[1]);
+          var threadID = parseInt(splittedMessage[1]);
           if(action === "end") {
             cachedCurrentOtherIds.map(function(v) {
-              users[v][threadId].state = null;
+              users[v][threadID].state = null;
             });
-            // if(users[threadId] && users[threadId][threadId]) users[threadId][threadId].state = null;
+            // if(users[threadID] && users[threadID][threadID]) users[threadID][threadID].state = null;
           }
           continue;
         }
@@ -344,12 +346,16 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(anonymousUsers[name]) {
       name = parseInt(anonymousUsers[name]);
     }
+    api.getUserID(name, function(err, IDs) {
+      if(err) return console.error(err);
 
-    api.sendDirectMessage(anonymousName + ": '" + message + "'", name, function(err) {
-      if(err) console.log(err);
-    });
+      if(IDs.length === 0) {
+        return sendReply({text: "Couldn't find " + name + "."});
+      }
 
-    return sendReply({text: "Message '"+message+"' sent."});
+      api.sendMessage(anonymousName + ": '" + message + "'", IDs[0]);
+      sendReply({text: "Message '"+message+"' sent."});
+    })
   }
 
   function setTimezone(msg, sendReply) {
@@ -447,11 +453,6 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     var name = list[1];
     if(name === "me") return sendReply({text: "No."});
 
-    if(anonymousUsers[name]) {
-      api.sendMessage(randFrom(lines));
-      return sendReply({text: name + " was just picked up."});
-    }
-
     return sendReply({text: "Hey, " + capitalize(name) + "! ;) " + randFrom(lines)});
 
   }
@@ -465,33 +466,33 @@ function startBot(api, chats, lists, users, anonymousUsers) {
       for (var j = 0; j < possibleMatches.length; j++) {
         var match = possibleMatches[j].exec(msg);
         if(match && match.length > 0) {
-          return sendReply({sticker_id: randFrom(possibilities[i][1])});
+          return sendReply({stickerID: randFrom(possibilities[i][1])});
         }
       }
     }
   }
 
   function sendBirthday(msg, sendReply) {
-    var match = matches(/\b(birthday)\b/i, msg);
-    if (!match) return;
+    // var match = matches(/\b(birthday)\b/i, msg);
+    // if (!match) return;
 
 
-    var today = new Date();
-    var dd = today.getDate();
-    var mm = today.getMonth();
+    // var today = new Date();
+    // var dd = today.getDate();
+    // var mm = today.getMonth();
 
-    var stickers = [144884805685786, 657501937666397, 401768673292031, 162333030618222, 553453074782034, 320763728117773, 201013703381897];
+    // var stickers = [144884805685786, 657501937666397, 401768673292031, 162333030618222, 553453074782034, 320763728117773, 201013703381897];
 
-    api.getUserInfo(currentOtherIds, function(err, ret) {
-      if(err) return console.error(err);
+    // api.getUserInfo(currentOtherIds, function(err, ret) {
+    //   if(err) return console.error(err);
 
 
-      for(var prop in ret) {
-        if(ret.hasOwnProperty(prop) && ret[prop].is_birthday) {
-          sendSplitMessage(currentThreadId, "HAPPY BIRTHDAY " + ret[prop].firstName.toUpperCase(), randFrom(stickers));
-        }
-      }
-    });
+    //   for(var prop in ret) {
+    //     if(ret.hasOwnProperty(prop) && ret[prop].is_birthday) {
+    //       sendSplitMessage(currentThreadId, "HAPPY BIRTHDAY " + ret[prop].firstName.toUpperCase(), randFrom(stickers));
+    //     }
+    //   }
+    // });
   }
 
   function slap(msg, sendReply) {
@@ -869,7 +870,7 @@ function matches(regex, msg) {
 function sendSplitMessage(targetId, message, stickerId, callback){
   if (message.length === 0){
     if (typeof stickerId !== 'undefined'){
-      api.sendSticker(stickerId, targetId, callback);
+      api.sendMessage({sticker: stickerId}, targetId, callback);
     } else if (callback) {
       callback();
     }
