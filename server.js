@@ -504,7 +504,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
     if(list.length === 1) return sendReply({text: currentOtherUsernames[~~(currentOtherUsernames.length * Math.random())] + " just got slapped."});
 
     var name = list[1];
-    if(name === "me") return sendReply({text: currentUsername + " just go slapped." + (Math.random() > 0.5 ? " Hard.": "")});
+    if(name === "me") return sendReply({text: currentUsername + " just got slapped." + (Math.random() > 0.5 ? " Hard.": "")});
 
     if(anonymousUsers[name]) {
       api.sendMessage(getAnonymous(currentUserId) + " just slapped you.", anonymousUsers[name]);
