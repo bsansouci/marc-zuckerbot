@@ -117,13 +117,14 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     if (event.type === 'message') {
       console.log("Received ->", event.body);
+      api.markAsRead(event.threadID);
       api.getThreadInfo(event.threadID, function(err, thread) {
         api.getUserInfo(thread.participantIDs, function(err, users) {
           if (err) throw err;
           var user = users[event.senderID];
           var participantNames = [];
           for (var id in users) {
-            participantNames.push(users[id].name);
+            participantNames.push(users[id].firstName);
           }
           read(event.body, user.firstName, event.threadID, event.senderID, participantNames, thread.participantIDs, function(msg) {
             if (!msg) return;
@@ -133,7 +134,6 @@ function startBot(api, chats, lists, users, anonymousUsers) {
             else if (msg.stickerID) api.sendMessage({
               sticker: msg.stickerID
             }, event.threadID);
-            else api.markAsRead(event.threadID);
           });
         });
       });
@@ -748,7 +748,7 @@ function startBot(api, chats, lists, users, anonymousUsers) {
   }
 
   function score(msg, sendReply) {
-    var match = matches(/^\/score([\w .\-]*)$/i, msg);
+    var match = matches(/^\/score\s+([\w .\-]*)$/i, msg);
     if (!match) return;
 
     var name = match.trim().toLowerCase();
