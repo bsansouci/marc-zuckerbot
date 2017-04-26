@@ -115,13 +115,23 @@ function startBot(api, chats, lists, users, anonymousUsers) {
 
     if(event.type === 'message') {
       console.log("Received ->", event.body);
-      read(event.body, event.senderName.split(' ')[0], event.threadID, event.senderID, event.participantNames, event.participantIDs, function(msg) {
-        if(!msg) return;
+      api.getThreadInfo(event.threadID, function(err, thread) {
+        api.getUserInfo(thread.participantIDs, function(err, users) {
+          if (err) throw err;
+          var user = users[event.senderID];
+          var participantNames = [];
+          for (var id in users) {
+            participantNames.push(users[id].name);
+          }
+          read(event.body, user.firstName, event.threadID, event.senderID, participantNames, thread.participantIDs, function(msg) {
+            if(!msg) return;
 
-        console.log("Sending ->", msg);
-        if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, event.threadID);
-        else if(msg.stickerID) api.sendMessage({sticker: msg.stickerID}, event.threadID);
-        else api.markAsRead(event.threadID);
+            console.log("Sending ->", msg);
+            if(msg.text && msg.text.length > 0) api.sendMessage(msg.text, event.threadID);
+            else if(msg.stickerID) api.sendMessage({sticker: msg.stickerID}, event.threadID);
+            else api.markAsRead(event.threadID);
+          });
+        });
       });
     }
   });
@@ -754,7 +764,7 @@ function arbitraryLists(msg, sendReply) {
     // to delete the whole list
     if(listName.length > 0) {
       // We check for permissions to delete the whole list
-      if(currentChat.lists[listName].thread_id !== currentThreadId) return {text: "Sorry you can't delete the list. This list was created in another chat."};
+      if(currentChat.lists[listName].thread_id !== currentThreadId) return sendReply({text: "Sorry you can't delete the list. This list was created in another chat."});
       var id = currentChat.lists[listName].id;
       delete lists[id];
       delete currentChat.lists[listName];
